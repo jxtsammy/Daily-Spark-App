@@ -34,13 +34,14 @@ import StreakSettings from './components/HomeApp/GeneralSettingsOptions/StreakSe
 import SignIn from './components/HomeApp/GeneralSettingsOptions/SignIn'
 import ManageSubscription from './components/HomeApp/GeneralSettingsOptions/ManageSubscription'
 import Themes from './components/HomeApp/Themes'
+import About from './components/HomeApp/GeneralSettingsOptions/About'
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Onboarding1">
+      <Stack.Navigator initialRouteName="GeneralSettings">
         <Stack.Screen
           name="Onboarding1"
           component={Onboarding1}
@@ -199,6 +200,11 @@ export default function App() {
         <Stack.Screen
           name="Themes"
           component={Themes}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="About"
+          component={About}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

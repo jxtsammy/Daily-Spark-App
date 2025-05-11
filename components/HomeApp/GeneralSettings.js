@@ -1,24 +1,25 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  StatusBar, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  TouchableOpacity,
   ImageBackground,
   ScrollView
 } from 'react-native';
-import { 
-  ArrowRight, 
-  Crown, 
-  BookOpen, 
-  User,  
-  UserCircle, 
-  Globe,  
-  Volume2, 
+import {
+  ArrowRight,
+  Crown,
+  BookOpen,
+  User,
+  UserCircle,
+  Globe,
+  Volume2,
   Flame,
   LogIn,
-  ChevronRight
+  ChevronRight,
+  Smartphone
 } from 'lucide-react-native';
 
 export default function App({navigation}) {
@@ -28,7 +29,7 @@ export default function App({navigation}) {
   };
 
   const renderSettingItem = (icon, title, screenName, isLast = false) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.settingItem, isLast ? styles.lastItem : null]}
       onPress={() => navigateTo(screenName)}
     >
@@ -41,7 +42,7 @@ export default function App({navigation}) {
   );
 
   return (
-    <ImageBackground 
+    <ImageBackground
       source={require('../../assets/settings.jpg')}
       style={styles.backgroundImage}
       resizeMode="cover"
@@ -49,18 +50,18 @@ export default function App({navigation}) {
       <View style={styles.overlay}>
         <View style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="#1E2732" />
-          
+
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
               <ArrowRight stroke="#fff" width={24} height={24} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>General</Text>
           </View>
-          
+
           <ScrollView style={styles.content}>
             {/* Premium Section */}
             <Text style={styles.sectionTitle}>PREMIUM</Text>
@@ -69,7 +70,7 @@ export default function App({navigation}) {
               "Manage subscription",
               "ManageSubscription"
             )}
-            
+
             {/* Make It Yours Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>MAKE IT YOURS</Text>
             {renderSettingItem(
@@ -95,10 +96,15 @@ export default function App({navigation}) {
             {renderSettingItem(
               <Flame stroke="#fff" width={24} height={24} style={styles.icon} />,
               "Streak",
-              "StreakSettings",
+              "StreakSettings"
+            )}
+            {renderSettingItem(
+              <Smartphone stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "About App",
+              "About",
               true
             )}
-            
+
             {/* Account Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>ACCOUNT</Text>
             {renderSettingItem(
@@ -106,7 +112,7 @@ export default function App({navigation}) {
               "Sign in",
               "SignIn"
             )}
-            
+
             {/* Bottom padding */}
             <View style={styles.bottomPadding} />
           </ScrollView>
@@ -170,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    paddingVertical: 22
+    paddingVertical: 20
   },
   lastItem: {
     marginBottom: 0,
