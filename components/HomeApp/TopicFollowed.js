@@ -193,19 +193,27 @@ export default function TopicsScreen({ navigation, customBackgroundImage }) {
 
   // Render general option item
   const renderGeneralOption = (option) => {
-    return (
-      <TouchableOpacity
-        key={option.id}
-        style={styles.generalOption}
-        onPress={() => navigation.navigate(option.name.replace(/\s+/g, ""))}
-      >
-        <View style={styles.generalOptionContent}>
-          <Text style={styles.generalOptionText}>{option.name}</Text>
-          <Ionicons name={option.icon} size={24} color="#FFFFFF" />
-        </View>
-      </TouchableOpacity>
-    )
-  }
+  // Map option IDs to screen names
+  const screenMap = {
+    1: "Favorites",
+    2: "MyCollections",
+    3: "AddQuotes",
+    4: "RecentQuotes"
+  };
+
+  return (
+    <TouchableOpacity
+      key={option.id}
+      style={styles.generalOption}
+      onPress={() => navigation.navigate(screenMap[option.id])}
+    >
+      <View style={styles.generalOptionContent}>
+        <Text style={styles.generalOptionText}>{option.name}</Text>
+        <Ionicons name={option.icon} size={24} color="#FFFFFF" />
+      </View>
+    </TouchableOpacity>
+  );
+};
 
   return (
     <ImageBackground
