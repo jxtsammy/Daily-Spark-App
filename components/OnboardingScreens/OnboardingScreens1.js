@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, {  useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -18,8 +18,28 @@ import Svg, {
   Stop,
   Line
 } from 'react-native-svg';
-
+import { useStore } from '../../store/useStore';
 export default function App({navigation}) {
+
+  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+  const getOnboarded = useStore((state) => state.onboarded);
+
+  const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
+
+  useEffect(() => {
+    if (getOnboarded) {
+      navigation.replace('PremiumOnbording');
+      console.log('User already onboarded, navigating to PremiumOnbording');
+    }
+  }, [getOnboarded, navigation]);
+
+
+const onCLickContinue = () => {
+  console.log(getOnboarded)
+  setOnboardedTrue();
+  navigation.navigate(initialRouteName);
+}
+
   // Animation value for the sun
   const sunAnimValue = useRef(new Animated.Value(0)).current;
 
@@ -49,6 +69,7 @@ export default function App({navigation}) {
     outputRange: [0, -15], // Sun moves up 15 pixels and back down
   });
 
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -67,7 +88,7 @@ export default function App({navigation}) {
           </View>
         </View>
         
-        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={() => navigation.navigate('Onboarding2')}>
+        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onCLickContinue}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>

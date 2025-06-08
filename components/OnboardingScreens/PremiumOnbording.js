@@ -13,6 +13,9 @@ import {
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import api from '../../helpers/api'; 
+import { useStore } from '../../store/useStore';
+
 
 export default function FreeTrialScreen() {
   // Navigation hook
@@ -23,6 +26,34 @@ export default function FreeTrialScreen() {
   
   // Animated values for floating dots
   const [dots, setDots] = useState([]);
+
+
+ 
+
+    const fetchData =  async() => {
+      try {
+        const response = await api.get('/payments/free-trial-plan'); 
+        const responseAuth = await api.get('/auth/anonymous');
+        console.log(responseAuth.data.data);
+        console.log(response.data);
+        
+        // check if both responses are successful
+        if (!response.data || !responseAuth.data) {
+          console.error('Failed to fetch data from API');
+          return;
+        }
+
+        // store the userdata and subscriptionId in zustand store
+        const setUser = useStore.getState().setUser;
+        const setSubscriptionId = useStore.getState().setSubscriptionId;
+        setUser(responseAuth.data.user);
+        setSubscriptionId(response.data.subscriptionId);
+      
+      } catch (error) {
+        console.error('API Error:', error);
+      }
+    };
+
   
   // Set status bar to light content (white text)
   useEffect(() => {
@@ -93,9 +124,9 @@ export default function FreeTrialScreen() {
   // Handle start trial button press
   const handleStartTrial = () => {
     // Add a console log to debug
-    console.log('Starting trial, navigating to MoodSelection');
+    fetchData()
     // Try using replace instead of navigate
-    navigation.replace('MoodSelection');
+    // navigation.replace('MoodSelection');
   };
   
   // Toggle reminder
