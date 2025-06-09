@@ -1,44 +1,72 @@
-import React, {  useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  StatusBar, 
-  Animated, 
-  Easing 
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Animated,
+  Easing
 } from 'react-native';
-import Svg, { 
-  Rect, 
-  Circle, 
-  Path, 
-  Defs, 
-  LinearGradient, 
+import Svg, {
+  Rect,
+  Circle,
+  Path,
+  Defs,
+  LinearGradient,
   Stop,
   Line
 } from 'react-native-svg';
 import { useStore } from '../../store/useStore';
-export default function App({navigation}) {
+import { createAnonymous } from '../../functions/create-anonymous';
 
-  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+
+export default function App({ navigation }) {
+
+   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
   const getOnboarded = useStore((state) => state.onboarded);
+  const userId = useStore((state) => state.userId);
+  const setUserId = useStore((state) => state.setUserId);
+
+  
 
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
 
-  useEffect(() => {
-    if (getOnboarded) {
-      navigation.replace('PremiumOnbording');
-      console.log('User already onboarded, navigating to PremiumOnbording');
-    }
-  }, [getOnboarded, navigation]);
+ useEffect(() => {
+    const handleUserCreation = async () => {
+      if (getOnboarded) {
+        if (userId) {
+          console.log('User already exists, navigating to PremiumOnboarding');
+          navigation.navigate("PremiumOnbording");
+          return;
+        }
+
+        try {
+          const success = await createAnonymous();
+          if (success) {
+            // Get fresh state after update
+            const newUserId = useStore.getState().userId;
+            newUserId && navigation.navigate("PremiumOnbording");
+          }
+        } catch (error) {
+          console.error('User creation failed:', error);
+        }
+      } else {
+        // Only create user if not onboarded
+        !userId && await createAnonymous();
+      }
+    };
+
+    handleUserCreation();
+  }, [getOnboarded, userId, navigation]);
 
 
-const onCLickContinue = () => {
-  console.log(getOnboarded)
-  setOnboardedTrue();
-  navigation.navigate(initialRouteName);
-}
+  const onCLickContinue = () => {
+    console.log(getOnboarded)
+    setOnboardedTrue();
+    navigation.navigate(initialRouteName);
+  }
 
   // Animation value for the sun
   const sunAnimValue = useRef(new Animated.Value(0)).current;
@@ -80,14 +108,14 @@ const onCLickContinue = () => {
             Inspiration to think positively, stay consistent, and focus on your growth
           </Text>
         </View>
-        
+
         <View style={styles.illustrationContainer}>
           {/* Window with animated sun */}
           <View style={styles.windowContainer}>
             <WindowWithSun sunTranslateY={sunTranslateY} />
           </View>
         </View>
-        
+
         <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onCLickContinue}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
@@ -100,7 +128,7 @@ const onCLickContinue = () => {
 const WindowWithSun = ({ sunTranslateY }) => {
   // Convert Animated.Value to number for SVG
   const translateY = sunTranslateY.__getValue ? sunTranslateY.__getValue() : 0;
-  
+
   return (
     <Svg width="280" height="320" viewBox="0 0 280 320">
       {/* Sky background */}
@@ -110,18 +138,18 @@ const WindowWithSun = ({ sunTranslateY }) => {
           <Stop offset="100%" stopColor="#C4E0FF" />
         </LinearGradient>
       </Defs>
-      
+
       {/* Window background (sky) */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="url(#skyGradient)" />
-      
+
       {/* Sun with rays */}
-      <Circle 
-        cx="140" 
-        cy={140 + translateY} 
-        r="50" 
-        fill="#FFD700" 
+      <Circle
+        cx="140"
+        cy={140 + translateY}
+        r="50"
+        fill="#FFD700"
       />
-      
+
       {/* Sun rays */}
       {[...Array(12)].map((_, i) => {
         const angle = (i * 30) * Math.PI / 180;
@@ -131,9 +159,9 @@ const WindowWithSun = ({ sunTranslateY }) => {
         const y1 = (140 + translateY) + innerRadius * Math.sin(angle);
         const x2 = 140 + outerRadius * Math.cos(angle);
         const y2 = (140 + translateY) + outerRadius * Math.sin(angle);
-        
+
         return (
-          <Line 
+          <Line
             key={i}
             x1={x1}
             y1={y1}
@@ -145,14 +173,14 @@ const WindowWithSun = ({ sunTranslateY }) => {
           />
         );
       })}
-      
+
       {/* Window frame */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="none" stroke="#4A5568" strokeWidth="10" />
-      
+
       {/* Window panes */}
       <Line x1="20" y1="160" x2="260" y2="160" stroke="#4A5568" strokeWidth="6" />
       <Line x1="140" y1="20" x2="140" y2="300" stroke="#4A5568" strokeWidth="6" />
-      
+
       {/* Window sill */}
       <Rect x="10" y="300" width="260" height="15" rx="2" fill="#4A5568" />
     </Svg>

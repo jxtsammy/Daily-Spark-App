@@ -9,6 +9,8 @@ export const useStore = create(
         (set) => ({
             onboarded: false,
             loggedIn: false,
+            userId: "",
+            setUserId: (userId) => set({ userId }),
             user: {},
             subscriptionId: "",
             setUser: (user) => set({ user }),

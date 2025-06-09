@@ -13,48 +13,61 @@ import {
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import api from '../../helpers/api'; 
+import api from '../../helpers/api';
 import { useStore } from '../../store/useStore';
+import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
+import { createFreeTrial } from '../../functions/create-free-trial';
 
 
 export default function FreeTrialScreen() {
   // Navigation hook
   const navigation = useNavigation();
-  
+
   // State for reminder toggle
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  
+
   // Animated values for floating dots
   const [dots, setDots] = useState([]);
 
 
- 
 
-    const fetchData =  async() => {
-      try {
-        const response = await api.get('/payments/free-trial-plan'); 
-        const responseAuth = await api.get('/auth/anonymous');
-        console.log(responseAuth.data.data);
-        console.log(response.data);
-        
-        // check if both responses are successful
-        if (!response.data || !responseAuth.data) {
-          console.error('Failed to fetch data from API');
-          return;
-        }
 
-        // store the userdata and subscriptionId in zustand store
-        const setUser = useStore.getState().setUser;
-        const setSubscriptionId = useStore.getState().setSubscriptionId;
-        setUser(responseAuth.data.user);
-        setSubscriptionId(response.data.subscriptionId);
-      
-      } catch (error) {
-        console.error('API Error:', error);
+  const fetchData = async () => {
+    try {
+
+
+      const res = createFreeTrial()
+
+      if (res) {
+        console.log('Free trial created successfully');
+        navigation.navigate('home');
       }
-    };
 
+
+
+    } catch (error) {
+      console.error('API Error:', error);
+    }
+  };
+
+useEffect(() => {
+  const checkFreeTrial = async () => {
+    const hasActiveTrial = await CheckHasFreeTrial();
+    console.log('Free trial status:', hasActiveTrial);
+    
+    if (hasActiveTrial) {
+      console.log('Navigating to home - active trial found');
+      navigation.navigate('Home');
+    } else {
+      console.log('No active trial found');
+      // Optionally show trial offer
+    }
+  };
   
+  checkFreeTrial();
+}, [navigation]);
+
+
   // Set status bar to light content (white text)
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
@@ -62,22 +75,22 @@ export default function FreeTrialScreen() {
       StatusBar.setBackgroundColor('#1E2A38');
       StatusBar.setTranslucent(true);
     }
-    
+
     // Create animated dots
     createFloatingDots();
   }, []);
-  
+
   // Create animated floating dots
   const createFloatingDots = () => {
     const newDots = [];
     const numDots = 15;
-    
+
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
       const posY = new Animated.Value(Math.random() * 100);
       const size = Math.random() * 6 + 8;
       const opacity = new Animated.Value(Math.random() * 0.5 + 0.4);
-      
+
       // Animate dot position
       Animated.loop(
         Animated.sequence([
@@ -93,7 +106,7 @@ export default function FreeTrialScreen() {
           })
         ])
       ).start();
-      
+
       // Animate dot opacity
       Animated.loop(
         Animated.sequence([
@@ -109,18 +122,18 @@ export default function FreeTrialScreen() {
           })
         ])
       ).start();
-      
+
       newDots.push({ posX, posY, size, opacity });
     }
-    
+
     setDots(newDots);
   };
-  
+
   // Handle close button press
   const handleClose = () => {
     navigation.navigate('WidgetOnboarding');
   };
-  
+
   // Handle start trial button press
   const handleStartTrial = () => {
     // Add a console log to debug
@@ -128,7 +141,7 @@ export default function FreeTrialScreen() {
     // Try using replace instead of navigate
     // navigation.replace('MoodSelection');
   };
-  
+
   // Toggle reminder
   const toggleReminder = () => {
     setReminderEnabled(!reminderEnabled);
@@ -137,7 +150,7 @@ export default function FreeTrialScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Floating Dots */}
       {dots.map((dot, index) => (
         <Animated.View
@@ -160,16 +173,16 @@ export default function FreeTrialScreen() {
           ]}
         />
       ))}
-      
+
       {/* Close Button (X) */}
-      <TouchableOpacity 
-        style={styles.closeButton} 
+      <TouchableOpacity
+        style={styles.closeButton}
         onPress={handleClose}
         activeOpacity={0.7}
       >
         <X size={24} color="white" />
       </TouchableOpacity>
-      
+
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -178,7 +191,7 @@ export default function FreeTrialScreen() {
             You won't be charged anything today
           </Text>
         </View>
-        
+
         {/* Trial Timeline */}
         <View style={styles.timelineContainer}>
           <View style={styles.timeline}>
@@ -190,7 +203,7 @@ export default function FreeTrialScreen() {
                 style={styles.timelineGradient}
               />
             </View>
-            
+
             {/* Timeline Items */}
             <View style={styles.timelineItems}>
               {/* Today */}
@@ -207,7 +220,7 @@ export default function FreeTrialScreen() {
                   </Text>
                 </View>
               </View>
-              
+
               {/* Day 2 */}
               <View style={styles.timelineItem}>
                 <View style={styles.timelineIconContainer}>
@@ -222,7 +235,7 @@ export default function FreeTrialScreen() {
                   </Text>
                 </View>
               </View>
-              
+
               {/* After day 3 */}
               <View style={styles.timelineItem}>
                 <View style={styles.timelineIconContainer}>
@@ -240,7 +253,7 @@ export default function FreeTrialScreen() {
             </View>
           </View>
         </View>
-        
+
         {/* Pricing Info */}
         <View style={styles.pricingContainer}>
           <Text style={styles.pricingText}>
@@ -250,7 +263,7 @@ export default function FreeTrialScreen() {
           </Text>
           <Text style={styles.monthlyPrice}>(only GH₵46.66/month)</Text>
         </View>
-        
+
         {/* Reminder Toggle */}
         <View style={styles.reminderContainer}>
           <Text style={styles.reminderText}>Reminder before trial ends</Text>
@@ -262,9 +275,9 @@ export default function FreeTrialScreen() {
             value={reminderEnabled}
           />
         </View>
-        
+
         {/* Start Trial Button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleStartTrial}
         >
@@ -277,7 +290,7 @@ export default function FreeTrialScreen() {
             <Text style={styles.startTrialText}>Start 3-day free trial now</Text>
           </LinearGradient>
         </TouchableOpacity>
-        
+
         {/* Footer Links */}
         <View style={styles.footerLinks}>
           <TouchableOpacity>
