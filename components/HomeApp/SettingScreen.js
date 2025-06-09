@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 70 : 20,
+    paddingTop: Platform.OS === 'ios' ? 80 : 20,
   },
   header: {
     flexDirection: 'row',
