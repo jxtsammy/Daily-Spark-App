@@ -1,5 +1,5 @@
 // App.js
-import React from 'react';
+import React ,{useState,useEffect}from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Onboarding1 from './components/OnboardingScreens/OnboardingScreens1'
@@ -40,9 +40,50 @@ import Favorites from './components/HomeApp/ExporeOptions/Favorites'
 import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
 import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
 
+import * as SplashScreen from 'expo-splash-screen';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+
+  const [appIsReady, setAppIsReady] = useState(false);
+
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Wait for store to hydrate
+        await new Promise((resolve) => {
+          const unsub = useStore.persist.onFinishHydration(() => {
+            unsub(); // Cleanup subscription
+            resolve();
+          });
+        });
+        
+        // Any other async prep you need can go here
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Tell the application to render
+        setAppIsReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
+
+  if (!appIsReady) {
+    return null; // Splash screen will remain visible during this time
+  }
+
+
+
+
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Onboarding1">
