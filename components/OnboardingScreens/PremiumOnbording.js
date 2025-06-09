@@ -34,16 +34,11 @@ export default function FreeTrialScreen() {
 
   const fetchData = async () => {
     try {
-
-
       const res = createFreeTrial()
-
       if (res) {
         console.log('Free trial created successfully');
-        navigation.navigate('home');
+        navigation.navigate('Home');
       }
-
-
 
     } catch (error) {
       console.error('API Error:', error);
@@ -60,9 +55,10 @@ useEffect(() => {
       navigation.navigate('Home');
     } else {
       console.log('No active trial found');
-      // Optionally show trial offer
+      
     }
   };
+
   
   checkFreeTrial();
 }, [navigation]);

@@ -24,42 +24,55 @@ import { createAnonymous } from '../../functions/create-anonymous';
 
 export default function App({ navigation }) {
 
-   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
   const getOnboarded = useStore((state) => state.onboarded);
   const userId = useStore((state) => state.userId);
-  const setUserId = useStore((state) => state.setUserId);
-
-  
+  const [userCreatedState, setUserCreatedState] = React.useState(false);
 
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
 
- useEffect(() => {
-    const handleUserCreation = async () => {
-      if (getOnboarded) {
-        if (userId) {
-          console.log('User already exists, navigating to PremiumOnboarding');
-          navigation.navigate("PremiumOnbording");
-          return;
-        }
+  let attempts = 0;
 
-        try {
-          const success = await createAnonymous();
-          if (success) {
-            // Get fresh state after update
-            const newUserId = useStore.getState().userId;
-            newUserId && navigation.navigate("PremiumOnbording");
-          }
-        } catch (error) {
-          console.error('User creation failed:', error);
-        }
+
+  const tryCreateAnonymous = async () => {
+    if (userId) {
+      setUserCreatedState(true);
+      console.log('User already exists, skipping creation...userId:',userId);
+      return true;
+    }
+
+    if (!userId) {
+      console.log('Creating anonymous user... Attempt:', attempts + 1);
+      const userCreated = await createAnonymous();
+      if (userCreated) {
+        console.log('Anonymous user created successfully');
+        return true;
+      } else if (attempts < 1) {
+        attempts += 1;
+        await tryCreateAnonymous();
       } else {
-        // Only create user if not onboarded
-        !userId && await createAnonymous();
+        console.error('Failed to create anonymous user after 2 attempts');
+        return false;
       }
+    }
+  };
+
+
+  useEffect(() => {
+    const handleUserCreation = async () => {
+     const rep= await tryCreateAnonymous();
+
+
+      if (getOnboarded  && rep) {
+        console.log('User already onboarded, navigating to PremiumOnboarding');
+        navigation.navigate("PremiumOnbording");
+      }
+
+
     };
 
     handleUserCreation();
-  }, [getOnboarded, userId, navigation]);
+  }, [getOnboarded, userId, navigation, setUserCreatedState]);
 
 
   const onCLickContinue = () => {
