@@ -13,57 +13,17 @@ import {
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import api from '../../helpers/api';
-import { useStore } from '../../store/useStore';
-import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
-import { createFreeTrial } from '../../functions/create-free-trial';
-
 
 export default function FreeTrialScreen() {
   // Navigation hook
   const navigation = useNavigation();
-
+  
   // State for reminder toggle
   const [reminderEnabled, setReminderEnabled] = useState(false);
-
+  
   // Animated values for floating dots
   const [dots, setDots] = useState([]);
-
-
-
-
-  const fetchData = async () => {
-    try {
-      const res = createFreeTrial()
-      if (res) {
-        console.log('Free trial created successfully');
-        navigation.navigate('Home');
-      }
-
-    } catch (error) {
-      console.error('API Error:', error);
-    }
-  };
-
-useEffect(() => {
-  const checkFreeTrial = async () => {
-    const hasActiveTrial = await CheckHasFreeTrial();
-    console.log('Free trial status:', hasActiveTrial);
-    
-    if (hasActiveTrial) {
-      console.log('Navigating to home - active trial found');
-      navigation.navigate('Home');
-    } else {
-      console.log('No active trial found');
-      
-    }
-  };
-
   
-  checkFreeTrial();
-}, [navigation]);
-
-
   // Set status bar to light content (white text)
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
@@ -71,22 +31,22 @@ useEffect(() => {
       StatusBar.setBackgroundColor('#1E2A38');
       StatusBar.setTranslucent(true);
     }
-
+    
     // Create animated dots
     createFloatingDots();
   }, []);
-
+  
   // Create animated floating dots
   const createFloatingDots = () => {
     const newDots = [];
     const numDots = 15;
-
+    
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
       const posY = new Animated.Value(Math.random() * 100);
       const size = Math.random() * 6 + 8;
       const opacity = new Animated.Value(Math.random() * 0.5 + 0.4);
-
+      
       // Animate dot position
       Animated.loop(
         Animated.sequence([
@@ -102,7 +62,7 @@ useEffect(() => {
           })
         ])
       ).start();
-
+      
       // Animate dot opacity
       Animated.loop(
         Animated.sequence([
@@ -118,26 +78,26 @@ useEffect(() => {
           })
         ])
       ).start();
-
+      
       newDots.push({ posX, posY, size, opacity });
     }
-
+    
     setDots(newDots);
   };
-
+  
   // Handle close button press
   const handleClose = () => {
     navigation.navigate('WidgetOnboarding');
   };
-
+  
   // Handle start trial button press
   const handleStartTrial = () => {
     // Add a console log to debug
-    fetchData()
+    console.log('Starting trial, navigating to MoodSelection');
     // Try using replace instead of navigate
-    // navigation.replace('MoodSelection');
+    navigation.replace('MoodSelection');
   };
-
+  
   // Toggle reminder
   const toggleReminder = () => {
     setReminderEnabled(!reminderEnabled);
@@ -146,7 +106,7 @@ useEffect(() => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-
+      
       {/* Floating Dots */}
       {dots.map((dot, index) => (
         <Animated.View
@@ -169,16 +129,16 @@ useEffect(() => {
           ]}
         />
       ))}
-
+      
       {/* Close Button (X) */}
-      <TouchableOpacity
-        style={styles.closeButton}
+      <TouchableOpacity 
+        style={styles.closeButton} 
         onPress={handleClose}
         activeOpacity={0.7}
       >
         <X size={24} color="white" />
       </TouchableOpacity>
-
+      
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
@@ -187,7 +147,7 @@ useEffect(() => {
             You won't be charged anything today
           </Text>
         </View>
-
+        
         {/* Trial Timeline */}
         <View style={styles.timelineContainer}>
           <View style={styles.timeline}>
@@ -199,7 +159,7 @@ useEffect(() => {
                 style={styles.timelineGradient}
               />
             </View>
-
+            
             {/* Timeline Items */}
             <View style={styles.timelineItems}>
               {/* Today */}
@@ -216,7 +176,7 @@ useEffect(() => {
                   </Text>
                 </View>
               </View>
-
+              
               {/* Day 2 */}
               <View style={styles.timelineItem}>
                 <View style={styles.timelineIconContainer}>
@@ -231,7 +191,7 @@ useEffect(() => {
                   </Text>
                 </View>
               </View>
-
+              
               {/* After day 3 */}
               <View style={styles.timelineItem}>
                 <View style={styles.timelineIconContainer}>
@@ -249,7 +209,7 @@ useEffect(() => {
             </View>
           </View>
         </View>
-
+        
         {/* Pricing Info */}
         <View style={styles.pricingContainer}>
           <Text style={styles.pricingText}>
@@ -259,7 +219,7 @@ useEffect(() => {
           </Text>
           <Text style={styles.monthlyPrice}>(only GH₵46.66/month)</Text>
         </View>
-
+        
         {/* Reminder Toggle */}
         <View style={styles.reminderContainer}>
           <Text style={styles.reminderText}>Reminder before trial ends</Text>
@@ -271,9 +231,9 @@ useEffect(() => {
             value={reminderEnabled}
           />
         </View>
-
+        
         {/* Start Trial Button */}
-        <TouchableOpacity
+        <TouchableOpacity 
           activeOpacity={0.8}
           onPress={handleStartTrial}
         >
@@ -286,7 +246,7 @@ useEffect(() => {
             <Text style={styles.startTrialText}>Start 3-day free trial now</Text>
           </LinearGradient>
         </TouchableOpacity>
-
+        
         {/* Footer Links */}
         <View style={styles.footerLinks}>
           <TouchableOpacity>

@@ -19,17 +19,10 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.ashdev87.snack4fbb033849ed476aab041372ea60ce13"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "a40f02e5-e186-4eb1-8da1-458c368ee6da"
-      }
-    },
-    "owner": "ashdev87"
+    }
   }
 }
