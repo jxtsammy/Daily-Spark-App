@@ -41,6 +41,7 @@ import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
 import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
 
 import * as SplashScreen from 'expo-splash-screen';
+import { createAnonymous } from './functions/create-anonymous';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -69,6 +70,7 @@ export default function App() {
       } finally {
         // Tell the application to render
         setAppIsReady(true);
+        await createAnonymous("App");
         await SplashScreen.hideAsync();
       }
     }

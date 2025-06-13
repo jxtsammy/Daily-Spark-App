@@ -11,9 +11,13 @@ import {
 import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PremiumModal from '../PremiumModal';
+import { useStore } from '../../../store/useStore';
+
 
 const ManageSubscriptionScreen = ({ navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const loggedIn = useStore((state) => state.loggedIn);
+
 
   const openPremiumModal = () => {
     setModalVisible(true);
@@ -22,6 +26,13 @@ const ManageSubscriptionScreen = ({ navigation }) => {
   const closePremiumModal = () => {
     setModalVisible(false);
   };
+
+
+  const goPremium = () => {
+    if (!loggedIn) return console.log("Can't go premuim,Log In")
+
+    openPremiumModal()
+  }
 
   return (
     <ImageBackground
@@ -37,33 +48,40 @@ const ManageSubscriptionScreen = ({ navigation }) => {
       >
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-          
+
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
               <ChevronLeft color="#fff" size={24} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Manage subscription</Text>
           </View>
-          
+
           {/* Content */}
           <View style={styles.content}>
-            <Text style={styles.subscriptionStatus}>
-              You are not subscribed
-            </Text>
-            
+
+            {
+              loggedIn ?
+                "" :
+                <Text style={styles.subscriptionStatus}>
+                  You are not logged In
+                </Text>
+
+
+            }
+
             <Text style={styles.subscriptionInfo}>
               You have a free Motivation account. You can purchase a Premium subscription to access our full library of content and features.
             </Text>
           </View>
-          
+
           {/* Footer */}
           <View style={styles.footer}>
-            <TouchableOpacity 
-              onPress={openPremiumModal}
+            <TouchableOpacity
+              onPress={goPremium}
               activeOpacity={0.8}
             >
               <LinearGradient
@@ -72,11 +90,13 @@ const ManageSubscriptionScreen = ({ navigation }) => {
                 end={{ x: 1, y: 0 }}
                 style={styles.premiumButton}
               >
+
                 <Text style={styles.premiumButtonText}>Go Premium</Text>
+
               </LinearGradient>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
+
+            <TouchableOpacity
               style={styles.restoreButton}
               activeOpacity={0.6}
             >
@@ -87,9 +107,9 @@ const ManageSubscriptionScreen = ({ navigation }) => {
       </LinearGradient>
 
       {/* Premium Modal */}
-      <PremiumModal 
-        visible={modalVisible} 
-        onClose={closePremiumModal} 
+      <PremiumModal
+        visible={modalVisible}
+        onClose={closePremiumModal}
       />
     </ImageBackground>
   );
@@ -155,7 +175,7 @@ const styles = StyleSheet.create({
   restoreButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight:'600'
+    fontWeight: '600'
   },
 });
 

@@ -31,44 +31,18 @@ export default function App({ navigation }) {
 
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
 
-  let attempts = 0;
 
 
-  const tryCreateAnonymous = async () => {
-    if (userId) {
-      setUserCreatedState(true);
-      console.log('User already exists, skipping creation...userId:',userId);
-      return true;
-    }
-
-    if (!userId) {
-      console.log('Creating anonymous user... Attempt:', attempts + 1);
-      const userCreated = await createAnonymous();
-      if (userCreated) {
-        console.log('Anonymous user created successfully');
-        return true;
-      } else if (attempts < 1) {
-        attempts += 1;
-        await tryCreateAnonymous();
-      } else {
-        console.error('Failed to create anonymous user after 2 attempts');
-        return false;
-      }
-    }
-  };
+  
 
 
   useEffect(() => {
     const handleUserCreation = async () => {
-     const rep= await tryCreateAnonymous();
-
-
-      if (getOnboarded  && rep) {
+      await createAnonymous("OnboardingScreen")
+      if (getOnboarded ) {
         console.log('User already onboarded, navigating to PremiumOnboarding');
         navigation.navigate("PremiumOnbording");
       }
-
-
     };
 
     handleUserCreation();

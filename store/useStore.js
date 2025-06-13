@@ -9,20 +9,31 @@ export const useStore = create(
         (set) => ({
             onboarded: false,
             loggedIn: false,
+            idToken: "",
+            refreshToken: "",
             userId: "",
-            setUserId: (userId) => set({ userId }),
             user: {},
             subscriptionId: "",
+            email: "",
+            isAnonymous: true,
+            emailVerified: false,
+
+            setIdToken: (idToken) => set({ idToken }),
+            setRefreshToken: (refreshToken) => set({ refreshToken }),
+            setUserEmail: (email) => set({ email }),
+            setUserEmailVerified: (emailVerified) => set({ emailVerified }),
+            setUserIsAnonymous: (isAnonymous) => ({ isAnonymous }),
+            setUserId: (userId) => set({ userId }),
             setUser: (user) => set({ user }),
             loginUser: () => set({ loggedIn: true }),
             logOutUser: () => set({ loggedIn: false, user: "" }),
             setOnboardedTrue: () => set({ onboarded: true }),
             setOnboardedFalse: () => set({ onboarded: false }),
-            resetStore: () => set({ onboarded: false, loggedIn: false, user: {}, subscriptionId: ""  }),
+            resetStore: () => set({ onboarded: false, loggedIn: false, user: {}, subscriptionId: "" }),
             setSubscriptionId: (subscriptionId) => set({ subscriptionId })
         }),
         {
-            name: 'app-storage',
+            name: 'appstorage',
             storage: createJSONStorage(() => AsyncStorage)
         }
     )

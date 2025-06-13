@@ -28,6 +28,8 @@ export default function App({navigation}) {
     navigation.navigate(screenName);
   };
 
+  
+
   const renderSettingItem = (icon, title, screenName, isLast = false) => (
     <TouchableOpacity
       style={[styles.settingItem, isLast ? styles.lastItem : null]}

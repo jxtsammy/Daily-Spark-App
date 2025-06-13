@@ -10,11 +10,13 @@ import {
 } from 'react-native';
 import { X, Check, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useStore } from '../../store/useStore';
 
 const { height } = Dimensions.get('window');
 
 export default function PremiumModal({ visible, onClose }) {
   const slideAnim = useRef(new Animated.Value(height)).current;
+  const loggedIn = useStore((state) => state.loggedIn);
   
   useEffect(() => {
     if (visible) {
