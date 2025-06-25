@@ -2,10 +2,10 @@ import axios from 'axios';
 
 // Configure base URL (replace with your API endpoint)
 const api = axios.create({
-  baseURL: 'http://10.0.2.2:3000', 
-  timeout: 10000, 
+  baseURL: 'http://localhost:3000', 
+  timeout: 50000, 
   headers: {
-     'Accept': 'application/json',
+    'Accept': 'application/json',
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': 'true'
   },
@@ -15,7 +15,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Modify requests before sending (e.g., add auth token)
-    const token = 'YOUR_AUTH_TOKEN'; // Retrieve from AsyncStorage or context
+    const token = 'YOUR_AUTH_TOKEN'; // Retrieve from AsyncStorage
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

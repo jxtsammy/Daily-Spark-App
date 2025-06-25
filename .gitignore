@@ -28,6 +28,8 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+yarn.lock
+package-lock.json
 
 # local env files
 .env*.local

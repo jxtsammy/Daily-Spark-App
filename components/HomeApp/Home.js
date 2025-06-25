@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
 import {
   View,
@@ -73,6 +71,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [themesModalVisible, setThemesModalVisible] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(defaultTheme)
   const [isDark, setIsDark] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false) // Add animation state
 
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current
@@ -111,35 +110,50 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   // Get background color for UI elements
   const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)")
 
-  // Pan responder for swipe gestures
+  // Improved Pan responder for swipe gestures
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 20
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only respond to vertical swipes with significant movement
+        // And only if we're not already animating
+        const { dx, dy } = gestureState
+        return !isAnimating && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30
       },
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy < 0) {
+      onPanResponderGrant: () => {
+        // Prevent other touch interactions during pan
+        setIsAnimating(true)
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Add resistance to make swiping feel more natural
+        const resistance = 0.7
+        const dampedDy = gestureState.dy * resistance
+        
+        if (dampedDy < 0) {
           // Swiping up - show next quote
-          swipeAnim.setValue(gestureState.dy)
-          nextQuoteAnim.setValue(height + gestureState.dy)
-        } else if (gestureState.dy > 0) {
+          swipeAnim.setValue(dampedDy)
+          nextQuoteAnim.setValue(height + dampedDy)
+        } else if (dampedDy > 0) {
           // Swiping down - show previous quote
-          swipeAnim.setValue(gestureState.dy)
-          prevQuoteAnim.setValue(-height + gestureState.dy)
+          swipeAnim.setValue(dampedDy)
+          prevQuoteAnim.setValue(-height + dampedDy)
         }
       },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < -100) {
+      onPanResponderRelease: (evt, gestureState) => {
+        const { dy, vy } = gestureState
+        const threshold = 80 // Reduced threshold for easier swiping
+        const velocityThreshold = 0.5
+        
+        if (dy < -threshold || vy < -velocityThreshold) {
           // Swipe up to next quote
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: -height,
-              duration: 300,
+              duration: 250,
               useNativeDriver: true,
             }),
             Animated.timing(nextQuoteAnim, {
               toValue: 0,
-              duration: 300,
+              duration: 250,
               useNativeDriver: true,
             }),
           ]).start(() => {
@@ -147,19 +161,20 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             nextQuoteAnim.setValue(height)
             prevQuoteAnim.setValue(-height)
             setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length)
-            setCurrentQuoteLiked(false) // Always reset like status for new quote
+            setCurrentQuoteLiked(false)
+            setIsAnimating(false)
           })
-        } else if (gestureState.dy > 100) {
+        } else if (dy > threshold || vy > velocityThreshold) {
           // Swipe down to previous quote
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: height,
-              duration: 300,
+              duration: 250,
               useNativeDriver: true,
             }),
             Animated.timing(prevQuoteAnim, {
               toValue: 0,
-              duration: 300,
+              duration: 250,
               useNativeDriver: true,
             }),
           ]).start(() => {
@@ -167,28 +182,38 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             nextQuoteAnim.setValue(height)
             prevQuoteAnim.setValue(-height)
             setCurrentQuoteIndex((prevIndex) => (prevIndex === 0 ? quotes.length - 1 : prevIndex - 1))
-            setCurrentQuoteLiked(false) // Always reset like status for new quote
+            setCurrentQuoteLiked(false)
+            setIsAnimating(false)
           })
         } else {
-          // Return to original position
+          // Return to original position with spring animation
           Animated.parallel([
             Animated.spring(swipeAnim, {
               toValue: 0,
-              friction: 5,
+              tension: 200,
+              friction: 8,
               useNativeDriver: true,
             }),
             Animated.spring(nextQuoteAnim, {
               toValue: height,
-              friction: 5,
+              tension: 200,
+              friction: 8,
               useNativeDriver: true,
             }),
             Animated.spring(prevQuoteAnim, {
               toValue: -height,
-              friction: 5,
+              tension: 200,
+              friction: 8,
               useNativeDriver: true,
             }),
-          ]).start()
+          ]).start(() => {
+            setIsAnimating(false)
+          })
         }
+      },
+      onPanResponderTerminate: () => {
+        // Reset animation state if gesture is terminated
+        setIsAnimating(false)
       },
     }),
   ).current
@@ -352,26 +377,28 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           </TouchableOpacity>
         </View>
 
-        {/* Quote container */}
-        <View style={styles.quoteContainer} {...panResponder.panHandlers}>
-          {/* Previous quote (for swipe down) */}
-          <Animated.View
-            style={[styles.quoteWrapper, styles.prevQuote, { transform: [{ translateY: prevQuoteAnim }] }]}
-          >
-            <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text}</Text>
-          </Animated.View>
+        {/* Quote container - Only apply panHandlers to this specific area */}
+        <View style={styles.quoteContainer}>
+          <View style={styles.swipeArea} {...panResponder.panHandlers}>
+            {/* Previous quote (for swipe down) */}
+            <Animated.View
+              style={[styles.quoteWrapper, styles.prevQuote, { transform: [{ translateY: prevQuoteAnim }] }]}
+            >
+              <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text}</Text>
+            </Animated.View>
 
-          {/* Current quote */}
-          <Animated.View style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}>
-            <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text}</Text>
-          </Animated.View>
+            {/* Current quote */}
+            <Animated.View style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}>
+              <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text}</Text>
+            </Animated.View>
 
-          {/* Next quote (for swipe up) */}
-          <Animated.View
-            style={[styles.quoteWrapper, styles.nextQuote, { transform: [{ translateY: nextQuoteAnim }] }]}
-          >
-            <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text}</Text>
-          </Animated.View>
+            {/* Next quote (for swipe up) */}
+            <Animated.View
+              style={[styles.quoteWrapper, styles.nextQuote, { transform: [{ translateY: nextQuoteAnim }] }]}
+            >
+              <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text}</Text>
+            </Animated.View>
+          </View>
         </View>
 
         {/* Heart animation overlay */}
@@ -383,23 +410,24 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
               transform: [{ scale: heartScale }],
             },
           ]}
+          pointerEvents="none"
         >
           <Ionicons name="heart" size={120} color="#fff" />
         </Animated.View>
 
         {/* Action buttons */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
+          <TouchableOpacity onPress={handleShare} style={styles.actionButton} disabled={isAnimating}>
             <Ionicons name="share-outline" size={28} color={textColor} />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
+          <TouchableOpacity onPress={handleLike} style={styles.actionButton} disabled={isAnimating}>
             <Ionicons name={getHeartIconName()} size={28} color={textColor} />
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
-          Swipe up/down
+          Swipe up/down for more quotes
         </Text>
 
         {/* Bottom navigation */}
@@ -407,17 +435,23 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={() => navigation.navigate("Topics")}
+            disabled={isAnimating}
           >
             <Ionicons name="grid" size={24} color={textColor} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.navButton, { backgroundColor: elementBgColor }]} onPress={toggleThemesModal}>
+          <TouchableOpacity 
+            style={[styles.navButton, { backgroundColor: elementBgColor }]} 
+            onPress={toggleThemesModal}
+            disabled={isAnimating}
+          >
             <Ionicons name="color-wand" size={24} color={textColor} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleSettingsModal}
+            disabled={isAnimating}
           >
             <Ionicons name="person" size={24} color={textColor} />
           </TouchableOpacity>
@@ -495,6 +529,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  swipeArea: {
+    flex: 1,
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
     overflow: "hidden",
   },
   quoteWrapper: {
@@ -518,6 +558,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     lineHeight: 36,
+    paddingHorizontal: 20,
   },
   heartOverlay: {
     position: "absolute",
@@ -545,6 +586,7 @@ const styles = StyleSheet.create({
   swipeText: {
     textAlign: "center",
     marginBottom: 20,
+    fontSize: 12,
   },
   bottomNav: {
     flexDirection: "row",

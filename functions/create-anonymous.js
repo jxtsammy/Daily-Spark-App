@@ -28,7 +28,8 @@ export const createAnonymous = async (location) => {
     // Create new anonymous user
     console.log(`[${location}] Creating new anonymous user...`);
     const responseAuth = await api.get('/auth/anonymous');
-    
+    console.log(`[${location}] Response from anonymous user creation:`, responseAuth.data);
+
     if (responseAuth.data.success) {
       const userData = responseAuth.data.data;
       const user = userData.user || {};
