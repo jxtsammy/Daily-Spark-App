@@ -23,6 +23,7 @@ import Color from "color"
 import { useStore } from "../../store/useStore"
 import { CheckHasFreeTrial } from "../../functions/check-has-free-trial"
 import { CheckHasExpiredSubscription } from "../../functions/check-has-expired-subscription"
+import { CheckActivePaidSubscriptions } from "../../functions/check-active-paid-subscription"
 
 
 const { width, height } = Dimensions.get("window")
@@ -38,8 +39,6 @@ const quotesA = [
   { id: 7, text: "I am in control of my thoughts and feelings.", backgroundColor: "#EBE7E0" },
 ]
 const defaultQuotes = [
-  { id: 1, text: "Welcome User, Quotes will be loaded soon", backgroundColor: "#EAE6DF" },]
-const sorryQuotes = [
   { id: 1, text: "Welcome User, Quotes will be loaded soon", backgroundColor: "#EAE6DF" },]
 
 // Default theme
@@ -80,7 +79,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [currentTheme, setCurrentTheme] = useState(defaultTheme)
   const [isDark, setIsDark] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false) // Add animation state
-  const [quotes, setQuotes] = useState(defaultQuotes) // Initialize with default quotes
+  const [quotes, setQuotes] = useState(quotesA) // Initialize with default quotes
 
 
   // Get user data from store
@@ -93,43 +92,50 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
 
   const fetchQuotes = async () => {
-    const res = await CheckHasExpiredSubscription();
+    const res = await CheckActivePaidSubscriptions();
 
-    if (res.payload.expired) {
-      console.log('Subscription expired');
-      alert('Your subscription has expired. Please renew to continue enjoying premium features.');
-    } else {
-      console.log('Subscription active');
+    if (res?.payload === null) {
+      console.log("No active subscription found, using default quotes");
+      setQuotes(quotesA);
+      return;
     }
-  };
 
+    if (!res?.payload?.subscription?.is_free) {
+            console.log("Fetching quotes from backend for paid subscription");
+
+    } 
+  }
+
+
+ 
 
   useEffect(() => {
-  let isMounted = true; // Track mounted state
+    let isMounted = true; // Track mounted state
 
-  const checkFreeTrial = async (retryCount = 0) => {
-    const hasActiveTrial = await CheckHasFreeTrial();
+    const checkFreeTrial = async (retryCount = 0) => {
+      const hasActiveTrial = await CheckHasFreeTrial();
 
-    if (!isMounted) return; // Prevent state updates if unmounted
+      if (!isMounted) return; // Prevent state updates if unmounted
 
-    if (hasActiveTrial) {
-      navigation.navigate('Home');
-      fetchQuotes(); // Fetch quotes after navigating to Home
-    } else if (retryCount < 3) {
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Reduced to 1s
-      return checkFreeTrial(retryCount + 1);
-    } else {
-      navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
-    }
-  };
+      if (hasActiveTrial) {
+        navigation.navigate('Home');
+        fetchQuotes(); // Fetch quotes after navigating to Home
+      } else if (retryCount < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Reduced to 1s
+        return checkFreeTrial(retryCount + 1);
+      } else {
+        navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+      }
+    };
 
-  checkFreeTrial();
+    checkFreeTrial();
+    fetchQuotes(); // Fetch quotes on initial load
 
-  return () => { isMounted = false; }; // Cleanup on unmount
-}, [navigation, userId]);
+    return () => { isMounted = false; }; // Cleanup on unmount
+  }, [navigation, userId]);
 
 
-  
+
 
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current

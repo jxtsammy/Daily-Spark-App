@@ -33,6 +33,7 @@ export default function PremiumModal({ visible, onClose }) {
     alert("Please select a subscription plan");
     return;
   }
+  console.log("Selected Subscription ID:", selectedSubscriptionID);
 
   try {
     // 1. Initialize payment
