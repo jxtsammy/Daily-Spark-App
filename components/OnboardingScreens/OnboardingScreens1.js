@@ -46,7 +46,7 @@ export default function App({ navigation }) {
     };
 
     handleUserCreation();
-  }, [getOnboarded, userId, navigation, setUserCreatedState]);
+  }, [navigation, getOnboarded]);
 
 
   const onCLickContinue = () => {

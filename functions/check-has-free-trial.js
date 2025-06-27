@@ -5,18 +5,19 @@ export const CheckHasFreeTrial = async () => {
   const { userId } = useStore.getState();
 
   try {
-    const response = await api.post('/payments/has-active-free-trial', { userId });
-    console.log('CheckHasFreeTrial response:', response.data);
+    const response = await api.post('/subscriptions/has-active-free-trial', { userId });
     
-    // Return TRUE if trial exists (matches your navigation logic)
-    return response.data.exists;
-    
+    if(response.data.status === 'error') {
+      return false; // No active free trial
+    }
+    return true;
+
   } catch (error) {
     console.error('Error checking free trial:', {
       error: error.message,
       userId,
       status: error.response?.status
     });
-    return false; // Default to false on error (no trial)
+    return false; 
   }
 };

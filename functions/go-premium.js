@@ -1,12 +1,12 @@
 import api from '../helpers/api';
 import { useStore } from '../store/useStore';
 
-export const GoPremium = async () => {
+export const GoPremium = async ( planId ) => {
   const { userId } = useStore.getState();
 
   try {
-    const response = await api.post('/payments/has-active-free-trial', { userId });
-    console.log('CheckHasFreeTrial response:', response.data);
+    const response = await api.post('/subscriptions/subscribe-paid', { userId, planId });
+    console.log('Go premium response:', response.data);
     
     // Return TRUE if trial exists (matches your navigation logic)
     return response.data.exists;

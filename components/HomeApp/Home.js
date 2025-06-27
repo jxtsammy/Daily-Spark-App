@@ -20,6 +20,10 @@ import PremiumModal from "./PremiumModal"
 import SettingsModal from "./SettingScreen"
 import ThemesModal from "./Themes"
 import Color from "color"
+import { useStore } from "../../store/useStore"
+import { CheckHasFreeTrial } from "../../functions/check-has-free-trial"
+import { CheckHasExpiredSubscription } from "../../functions/check-has-expired-subscription"
+
 
 const { width, height } = Dimensions.get("window")
 
@@ -72,6 +76,48 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [currentTheme, setCurrentTheme] = useState(defaultTheme)
   const [isDark, setIsDark] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false) // Add animation state
+
+
+  // Get user data from store
+  const {userId} = useStore.getState() ;
+
+  console.log("User ID from store:", userId)
+
+ 
+  const checkFreeTrial = async () => {
+    const hasActiveTrial = await CheckHasFreeTrial();
+    
+    if (hasActiveTrial) {
+      console.log('Navigating to home - active trial found');
+      navigation.navigate('Home');
+    } else {
+      console.log('No active trial found');
+      navigation.navigate('PremiumOnbording');
+
+      
+    }
+  };
+  const fetchQuotes = async () => {
+    const res = await CheckHasExpiredSubscription();
+    
+    if (res.payload.expired) {
+      console.log('Subscription expired');
+      alert('Your subscription has expired. Please renew to continue enjoying premium features.');
+    } else {
+      console.log('Subscription active');
+
+      // Fetch quotes from the server or local storage
+
+      
+    }
+  };
+  
+
+
+  useEffect(() => {
+    checkFreeTrial();
+    fetchQuotes();
+  }, [navigation]);
 
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current

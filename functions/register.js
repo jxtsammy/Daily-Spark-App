@@ -5,21 +5,21 @@ export const Register = async ({ email, password }) => {
     try {
         const {idToken} = useStore.getState();
 
+        console.log(idToken ,email,password);
+
+        
+
         if (!idToken) {
             console.log("No ID token found");
             return false;
         }
 
-        const response = await api.post('/auth/register', { idToken, email, password });
-        console.log('Register response:', response.data);
+        const response = await api.post('/auth/init-link-account', { idToken, email, password });
 
-return response.data.success
+       return response.data
 
     } catch (error) {
-        console.error('Error checking free trial:', {
-            error: error.message,
-            status: error.response?.status
-        });
-        return false; 
+        console.error('Error registering:', error);
+        return false;
     }
 };

@@ -12,18 +12,20 @@ export const createFreeTrial = async () => {
             return false;
         }
 
-         const response0 = await api.post('/subscription/assign-free-plan', {
+         const response0 = await api.post('/subscriptions/assign-free-plan', {
             userId});
 
         console.log('Free trial response:', response0.data);
 
-        if (response0.data.exists) {
+        if (response0.data.message === 'Active subscription found') {
             console.log('User already has an active free trial');
-            return false;
+            setSubscriptionId(response0.data.payload.plan_id);
+            return false; // User already has an active free trial
         }
+            console.log('Free plan subscription successful');
+            alert('Free plan subscription successful');
 
-            // setSubscriptionId(response1.data);
-
+            setSubscriptionId(response0.data.payload.plan_id);
 
         return true;
     } catch (error) {

@@ -13,6 +13,7 @@ import {
 import { ChevronLeft, Quote } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Register } from '../../../functions/register';
+import { SignIn } from '../../../functions/sign-in';
 
 const SignInScreen = ({ navigation }) => {
 
@@ -21,13 +22,16 @@ const SignInScreen = ({ navigation }) => {
 
 
 const handleRegister = async () => {
-  console.log("SignUp clicked", email, password);  // Fixed typo here
+  console.log("SignUp clicked", email, password);  
   try {
-    const res = await Register(email, password);
+    const res = await Register({email, password});
     console.log("Registration response:", res);
     
     if (res.success) {
-      // navigation.navigate('Home');
+      // Registration successful
+      alert("Registration successful , please check your email to complete verification before signing in");
+      setEmail("");
+      setPassword("");
     } else {
       // Show error to user
       alert(res.message || "Registration failed");
@@ -37,6 +41,28 @@ const handleRegister = async () => {
     alert("An error occurred during registration");
   }
 }
+
+  const handleSignIn = async() => {
+    console.log("SignIn clicked", email, password);
+try {
+    const res = await SignIn({email, password});
+    console.log("Registration response:", res);
+    
+    if (res.success) {
+      alert("SignIn successful");
+      setEmail("");
+      setPassword("");
+      navigation.navigate("Home");
+    } else {
+      alert(res.message || "SignIn failed , please check your email and password");
+    }
+  } catch (error) {
+    console.error("SignIn error:", error);
+    alert("An error occurred during registration");
+  }
+
+
+  }
 
   return (
     <ImageBackground
@@ -97,7 +123,7 @@ const handleRegister = async () => {
             />
 
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.signInButton}>
+              <TouchableOpacity onPress={handleSignIn} style={styles.signInButton}>
                 <Text style={styles.buttonText}>Sign in </Text>
               </TouchableOpacity>
 

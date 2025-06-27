@@ -29,7 +29,7 @@ const ManageSubscriptionScreen = ({ navigation }) => {
 
 
   const goPremium = () => {
-    if (!loggedIn) return console.log("Can't go premuim,Log In")
+    // if (!loggedIn) return console.log("Can't go premuim,Log In")
 
     openPremiumModal()
   }

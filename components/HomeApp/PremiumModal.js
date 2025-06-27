@@ -11,12 +11,48 @@ import {
 import { X, Check, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useStore } from '../../store/useStore';
+  import { useNavigation } from '@react-navigation/native';
+import { GetAllPlans } from '../../functions/get-all-plans';
+import { GoPremium } from '../../functions/go-premium';
+
 
 const { height } = Dimensions.get('window');
 
 export default function PremiumModal({ visible, onClose }) {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const loggedIn = useStore((state) => state.loggedIn);
+  const [plans, setPlans] = React.useState([]);
+  const [selectedSubscriptionID, setSelectedSubscriptionID] = React.useState(null);
+
+  const navigation = useNavigation();
+
+  const handleGoPremium =async () => {
+    
+    if (selectedSubscriptionID) {
+      const res = await GoPremium(selectedSubscriptionID)
+      console.log("Go Premium response:", res);
+
+
+    } else {
+      console.log("Please select a subscription plan");
+      alert("Please select a subscription plan");
+    }
+  }
+
+// wrap in useEffect to ensure it runs only once
+  useEffect(() => {
+    const fetchPlans = async () => {
+      const response = await GetAllPlans();
+      if (response && response.status === "success" && Array.isArray(response.payload)) {
+        setPlans(response.payload);
+        console.log('Fetched plans:', response.payload);
+      } else {
+        setPlans([]);
+        console.log('Failed to fetch plans:', response);
+      }
+    };
+    fetchPlans();
+  }, []);
   
   useEffect(() => {
     if (visible) {
@@ -93,35 +129,53 @@ export default function PremiumModal({ visible, onClose }) {
           </View>
         </View>
         
-        {/* Subscription Options */}
+
         <View style={styles.subscriptionContainer}>
-          <TouchableOpacity style={styles.subscriptionOption}>
-            <LinearGradient
-              colors={['purple', '#EC4899']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.freeBadge}
-            >
-              <Text style={styles.freeBadgeText}>3 days free</Text>
-            </LinearGradient>
-            <View style={styles.subscriptionContent}>
-              <Text style={styles.subscriptionType}>Annual</Text>
-              <Text style={styles.subscriptionPrice}>GH₵540.00/year</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.subscriptionOption}>
-            <View style={styles.subscriptionContent}>
-              <Text style={styles.subscriptionType}>Monthly</Text>
-              <Text style={styles.subscriptionPrice}>GH₵190.00/month</Text>
-            </View>
-          </TouchableOpacity>
+          {plans.length > 0 ? (
+            plans.map((plan, idx) => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[
+                  styles.subscriptionOption,
+                  { borderWidth: 2, borderColor: '#8A92B2' },
+                  selectedSubscriptionID === plan.id && { borderWidth: 2, borderColor: '#EC4899' }
+                ]}
+                onPress={() => setSelectedSubscriptionID(plan.id)}
+              >
+                {plan.discount > 0 && (
+                  <LinearGradient
+                    colors={['purple', '#EC4899']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.freeBadge}
+                  >
+                    <Text style={styles.freeBadgeText}>
+                      {plan.discount}% off
+                    </Text>
+                  </LinearGradient>
+                )}
+                <View style={styles.subscriptionContent}>
+                  <Text style={styles.subscriptionType}>{plan.name}</Text>
+                  <Text style={styles.subscriptionPrice}>
+                    GH&#8373; {plan.price.toFixed(2)}
+                    {plan.duration_days >= 365
+                      ? ' / year'
+                      : plan.duration_days >= 30
+                      ? ' / month'
+                      : ` / ${plan.duration_days} days`}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={{ color: 'white', textAlign: 'center', flex: 1 }}>
+              No plans available.
+            </Text>
+          )}
         </View>
-        
+
         <Text style={styles.cancelText}>Cancel anytime · No questions asked</Text>
-        
-        {/* Continue Button */}
-        <TouchableOpacity>
+        <TouchableOpacity onPress={handleGoPremium }>
           <LinearGradient
             colors={['purple', '#EC4899']}
             start={{ x: 0, y: 0 }}
@@ -131,7 +185,6 @@ export default function PremiumModal({ visible, onClose }) {
             <Text style={styles.continueText}>Continue</Text>
           </LinearGradient>
         </TouchableOpacity>
-        
         {/* Footer */}
         <View style={styles.footer}>
           <TouchableOpacity>

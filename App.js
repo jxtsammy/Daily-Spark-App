@@ -70,7 +70,7 @@ export default function App() {
       } finally {
         // Tell the application to render
         setAppIsReady(true);
-        await createAnonymous("App");
+        // await createAnonymous("App");
         await SplashScreen.hideAsync();
       }
     }
