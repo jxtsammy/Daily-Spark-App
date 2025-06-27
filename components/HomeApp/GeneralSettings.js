@@ -21,14 +21,25 @@ import {
   ChevronRight,
   Smartphone
 } from 'lucide-react-native';
+import { useStore } from '../../store/useStore';
 
-export default function App({navigation}) {
+export default function App({ navigation }) {
+
+
+  const { loggedIn, resetStore } = useStore.getState();
   // Navigation handlers for each setting item
   const navigateTo = (screenName) => {
     navigation.navigate(screenName);
   };
 
-  
+  const handleSignOut = () => {
+    resetStore();
+    navigation.navigate("Home");
+  }
+
+
+
+  console.log("Logged In", loggedIn)
 
   const renderSettingItem = (icon, title, screenName, isLast = false) => (
     <TouchableOpacity
@@ -39,7 +50,7 @@ export default function App({navigation}) {
         {icon}
         <Text style={styles.settingItemText}>{title}</Text>
       </View>
-      <ChevronRight stroke="#fff" width={20} height={20}/>
+      <ChevronRight stroke="#fff" width={20} height={20} />
     </TouchableOpacity>
   );
 
@@ -67,11 +78,23 @@ export default function App({navigation}) {
           <ScrollView style={styles.content}>
             {/* Premium Section */}
             <Text style={styles.sectionTitle}>PREMIUM</Text>
-            {renderSettingItem(
-              <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
-              "Manage subscription",
-              "ManageSubscription"
-            )}
+
+
+            {
+              loggedIn ? (
+                renderSettingItem(
+                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Manage subscription",
+                  "ManageSubscription"
+                )
+              ) : (
+                renderSettingItem(
+                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Sign In to Manage subscription",
+                  "SignIn"
+                )
+              )
+            }
 
             {/* Make It Yours Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>MAKE IT YOURS</Text>
@@ -109,11 +132,27 @@ export default function App({navigation}) {
 
             {/* Account Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>ACCOUNT</Text>
-            {renderSettingItem(
-              <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />,
-              "Sign in",
-              "SignIn"
-            )}
+
+            <View>
+              {loggedIn ? (
+                <TouchableOpacity
+                  style={[styles.settingItem, styles.lastItem]}
+                  onPress={() => handleSignOut()}
+                >
+                  <View style={styles.settingItemLeft}>
+                    <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />
+                    <Text style={styles.settingItemText}>Sign Out</Text>
+                  </View>
+                  <ChevronRight stroke="#fff" width={20} height={20} />
+                </TouchableOpacity>
+              ) : (
+                renderSettingItem(
+                  <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Sign in",
+                  "SignIn"
+                )
+              )}
+            </View>
 
             {/* Bottom padding */}
             <View style={styles.bottomPadding} />

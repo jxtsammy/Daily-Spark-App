@@ -11,7 +11,8 @@ export const SignIn = async ({ email, password }) => {
             setRefreshToken,
             setUserEmail,
             setUserEmailVerified,
-            setUserIsAnonymous
+            setUserIsAnonymous,
+            loginUser
         } = useStore.getState();
 
         const response = await api.post('/auth/login', { email, password });
@@ -46,6 +47,7 @@ export const SignIn = async ({ email, password }) => {
             setUserEmail(storedData.email);
             setUserEmailVerified(storedData.emailVerified);
             setUserIsAnonymous(storedData.isAnonymous);
+            loginUser();
         }
         return response.data;
 

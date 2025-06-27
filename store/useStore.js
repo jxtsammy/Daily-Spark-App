@@ -29,7 +29,8 @@ export const useStore = create(
             logOutUser: () => set({ loggedIn: false, user: "" }),
             setOnboardedTrue: () => set({ onboarded: true }),
             setOnboardedFalse: () => set({ onboarded: false }),
-            resetStore: () => set({ onboarded: false, loggedIn: false, user: {}, subscriptionId: "" }),
+            resetStore: () => set({ onboarded: false, loggedIn: false, user: {}, subscriptionId: "",
+                idToken: "", refreshToken: "", userId: "", email: "", isAnonymous: true, emailVerified: false }),
             setSubscriptionId: (subscriptionId) => set({ subscriptionId })
         }),
         {

@@ -6,13 +6,12 @@ export const GoPremium = async ( planId ) => {
 
   try {
     const response = await api.post('/subscriptions/subscribe-paid', { userId, planId });
-    console.log('Go premium response:', response.data);
+    console.log('Go premium function response :', response.data);
     
-    // Return TRUE if trial exists (matches your navigation logic)
-    return response.data.exists;
+    return response.data;
     
   } catch (error) {
-    console.error('Error checking free trial:', {
+    console.error('Error in go premium function:', {
       error: error.message,
       userId,
       status: error.response?.status

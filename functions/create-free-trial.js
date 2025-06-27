@@ -19,7 +19,7 @@ export const createFreeTrial = async () => {
 
         if (response0.data.message === 'Active subscription found') {
             console.log('User already has an active free trial');
-            setSubscriptionId(response0.data.payload.plan_id);
+            setSubscriptionId(response0.data.payload.id);
             return false; // User already has an active free trial
         }
             console.log('Free plan subscription successful');

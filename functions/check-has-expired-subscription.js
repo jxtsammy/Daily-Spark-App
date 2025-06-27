@@ -5,7 +5,7 @@ export const CheckHasExpiredSubscription = async () => {
   const { userId ,subscriptionId } = useStore.getState();
 
   try {
-    const response = await api.post('/subscriptions/has-expired-subscription', { userId ,planId:subscriptionId });
+    const response = await api.post('/subscriptions/has-expired-subscription', { userId ,subscriptionId });
     
    
     return response.data; // Returns true if subscription has expired

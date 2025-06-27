@@ -28,7 +28,7 @@ import { CheckHasExpiredSubscription } from "../../functions/check-has-expired-s
 const { width, height } = Dimensions.get("window")
 
 // Sample quotes data
-const quotes = [
+const quotesA = [
   { id: 1, text: "I deserve to have joy in my life.", backgroundColor: "#EAE6DF" },
   { id: 2, text: "I am worthy of love and respect.", backgroundColor: "#E5E1D8" },
   { id: 3, text: "My potential is limitless.", backgroundColor: "#D8D3C8" },
@@ -37,6 +37,10 @@ const quotes = [
   { id: 6, text: "Today I choose happiness.", backgroundColor: "#E2DED7" },
   { id: 7, text: "I am in control of my thoughts and feelings.", backgroundColor: "#EBE7E0" },
 ]
+const defaultQuotes = [
+  { id: 1, text: "Welcome User, Quotes will be loaded soon", backgroundColor: "#EAE6DF" },]
+const sorryQuotes = [
+  { id: 1, text: "Welcome User, Quotes will be loaded soon", backgroundColor: "#EAE6DF" },]
 
 // Default theme
 const defaultTheme = {
@@ -76,48 +80,56 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [currentTheme, setCurrentTheme] = useState(defaultTheme)
   const [isDark, setIsDark] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false) // Add animation state
+  const [quotes, setQuotes] = useState(defaultQuotes) // Initialize with default quotes
 
 
   // Get user data from store
-  const {userId} = useStore.getState() ;
+  const { userId } = useStore.getState();
 
   console.log("User ID from store:", userId)
 
- 
-  const checkFreeTrial = async () => {
-    const hasActiveTrial = await CheckHasFreeTrial();
-    
-    if (hasActiveTrial) {
-      console.log('Navigating to home - active trial found');
-      navigation.navigate('Home');
-    } else {
-      console.log('No active trial found');
-      navigation.navigate('PremiumOnbording');
 
-      
-    }
-  };
+
+
+
   const fetchQuotes = async () => {
     const res = await CheckHasExpiredSubscription();
-    
+
     if (res.payload.expired) {
       console.log('Subscription expired');
       alert('Your subscription has expired. Please renew to continue enjoying premium features.');
     } else {
       console.log('Subscription active');
-
-      // Fetch quotes from the server or local storage
-
-      
     }
   };
-  
 
 
   useEffect(() => {
-    checkFreeTrial();
-    fetchQuotes();
-  }, [navigation]);
+  let isMounted = true; // Track mounted state
+
+  const checkFreeTrial = async (retryCount = 0) => {
+    const hasActiveTrial = await CheckHasFreeTrial();
+
+    if (!isMounted) return; // Prevent state updates if unmounted
+
+    if (hasActiveTrial) {
+      navigation.navigate('Home');
+      fetchQuotes(); // Fetch quotes after navigating to Home
+    } else if (retryCount < 3) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Reduced to 1s
+      return checkFreeTrial(retryCount + 1);
+    } else {
+      navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+    }
+  };
+
+  checkFreeTrial();
+
+  return () => { isMounted = false; }; // Cleanup on unmount
+}, [navigation, userId]);
+
+
+  
 
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current
@@ -173,7 +185,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         // Add resistance to make swiping feel more natural
         const resistance = 0.7
         const dampedDy = gestureState.dy * resistance
-        
+
         if (dampedDy < 0) {
           // Swiping up - show next quote
           swipeAnim.setValue(dampedDy)
@@ -188,7 +200,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         const { dy, vy } = gestureState
         const threshold = 80 // Reduced threshold for easier swiping
         const velocityThreshold = 0.5
-        
+
         if (dy < -threshold || vy < -velocityThreshold) {
           // Swipe up to next quote
           Animated.parallel([
@@ -486,8 +498,8 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             <Ionicons name="grid" size={24} color={textColor} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.navButton, { backgroundColor: elementBgColor }]} 
+          <TouchableOpacity
+            style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleThemesModal}
             disabled={isAnimating}
           >

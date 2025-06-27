@@ -14,11 +14,13 @@ import { useStore } from '../../store/useStore';
   import { useNavigation } from '@react-navigation/native';
 import { GetAllPlans } from '../../functions/get-all-plans';
 import { GoPremium } from '../../functions/go-premium';
+import * as WebBrowser from 'expo-web-browser';
+import { VerifyPayment } from '../../functions/verify-payment';
 
 
-const { height } = Dimensions.get('window');
 
 export default function PremiumModal({ visible, onClose }) {
+  const { height } = Dimensions.get('window');
   const slideAnim = useRef(new Animated.Value(height)).current;
   const loggedIn = useStore((state) => state.loggedIn);
   const [plans, setPlans] = React.useState([]);
@@ -26,19 +28,61 @@ export default function PremiumModal({ visible, onClose }) {
 
   const navigation = useNavigation();
 
-  const handleGoPremium =async () => {
-    
-    if (selectedSubscriptionID) {
-      const res = await GoPremium(selectedSubscriptionID)
-      console.log("Go Premium response:", res);
-
-
-    } else {
-      console.log("Please select a subscription plan");
-      alert("Please select a subscription plan");
-    }
+ const handleGoPremium = async () => {
+  if (!selectedSubscriptionID) {
+    alert("Please select a subscription plan");
+    return;
   }
 
+  try {
+    // 1. Initialize payment
+    const res = await GoPremium(selectedSubscriptionID);
+    console.log("Go Premium response:", res);
+
+    if (res.status === "error") {
+      alert(res.message + " Please Sign In to continue");
+      navigation.navigate("ManageSubscription");
+      onClose()
+      return;
+    }
+
+    if (!res.payload?.payment_url) {
+      alert("Failed to initialize payment. Please try again.");
+      return;
+    }
+
+    // 2. Open payment URL
+    await WebBrowser.openBrowserAsync(res.payload.payment_url);
+    
+    // 3. Verify payment (with retry logic)
+    let verificationAttempts = 0;
+    const maxAttempts = 3;
+    let paymentResult;
+
+    while (verificationAttempts < maxAttempts) {
+      paymentResult = await VerifyPayment(res.payload.reference);
+      
+      if (paymentResult.status === "success") {
+        alert("Payment verified successfully!");
+         onClose()
+        return;
+      }
+
+      verificationAttempts++;
+      if (verificationAttempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retrying
+      }
+    }
+
+    // If all attempts fail
+    alert("Payment verification failed. Please check your subscription status later.");
+    navigation.navigate("ManageSubscriptions");
+
+  } catch (error) {
+    console.error("Error in handleGoPremium:", error);
+    alert("An error occurred. Please try again.");
+  }
+};
 // wrap in useEffect to ensure it runs only once
   useEffect(() => {
     const fetchPlans = async () => {
