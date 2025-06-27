@@ -8,7 +8,7 @@ export const GetAllPlans = async () => {
     const response = await api.get('/subscriptions/plans');
     
    
-    return response.data; // Returns true if subscription has expired
+    return response.data; 
 
   } catch (error) {
     console.error('Error getting plans:', {

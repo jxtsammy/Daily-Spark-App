@@ -3,12 +3,13 @@ import { useStore } from '../store/useStore';
 
 export const CheckHasExpiredSubscription = async () => {
   const { userId ,subscriptionId } = useStore.getState();
+  console.log('Checking expired subscription for user:', userId, 'with subscription ID:', subscriptionId);
 
   try {
     const response = await api.post('/subscriptions/has-expired-subscription', { userId ,subscriptionId });
     
    
-    return response.data; // Returns true if subscription has expired
+    return response.data; 
 
   } catch (error) {
     console.error('Error checking expired subscription:', {

@@ -1,6 +1,7 @@
 // a function to create an anonymous user
 import api from '../helpers/api';
 import { useStore } from '../store/useStore';
+import { createAnonymous } from './create-anonymous';
 
 
 export const createFreeTrial = async () => {
@@ -8,7 +9,8 @@ export const createFreeTrial = async () => {
 
     try {
         if (!userId) {
-            console.error('User ID is required to create a free trial');
+            console.log('User ID is required to create a free trial');
+            await createAnonymous();
             return false;
         }
 
@@ -25,7 +27,7 @@ export const createFreeTrial = async () => {
             console.log('Free plan subscription successful');
             alert('Free plan subscription successful');
 
-            setSubscriptionId(response0.data.payload.plan_id);
+            setSubscriptionId(response0.data.payload.id);
 
         return true;
     } catch (error) {
