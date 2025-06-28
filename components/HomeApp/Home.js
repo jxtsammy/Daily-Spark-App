@@ -87,7 +87,17 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
   console.log("User ID from store:", userId)
 
+// if userId is null or empty or undefined, go to PremiumOnbording screen
+  useEffect(() => {
+    if (!userId) {
+      console.log("User ID is null or undefined, navigating to PremiumOnboarding");
+      navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+    }
+  }, [userId, navigation]);
 
+  if (!userId) {
+    return null; // Prevent rendering the rest of the component
+  }
 
 
 

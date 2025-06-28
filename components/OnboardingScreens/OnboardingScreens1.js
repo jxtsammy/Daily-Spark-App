@@ -20,17 +20,18 @@ import Svg, {
 } from 'react-native-svg';
 import { useStore } from '../../store/useStore';
 import { createAnonymous } from '../../functions/create-anonymous';
-import { 
-  AppOpenAd, 
-  InterstitialAd, 
-  RewardedAd, 
-  BannerAd, 
+import {
+  AppOpenAd,
+  InterstitialAd,
+  RewardedAd,
+  BannerAd,
   TestIds,
-  BannerAdSize 
+  BannerAdSize
 } from 'react-native-google-mobile-ads';
 import InterstitialManager from '../../services/Ads/InterstitialManager';
 import { AppState } from 'react-native';
 import AdManager from '../../services/AdManager';
+import ToastManager, { Toast } from 'toastify-react-native'
 
 export default function App({ navigation }) {
   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
@@ -54,18 +55,25 @@ export default function App({ navigation }) {
       await createAnonymous("OnboardingScreen")
       if (getOnboarded) {
         console.log('User already onboarded, navigating to PremiumOnboarding');
-          //  await AdManager.showInterstitial();
-        navigation.navigate("PremiumOnbording");
+        // await AdManager.showInterstitial();
+        await AdManager.showRewarded((reward) => {
+          console.log(`Earned ${reward.amount} ${reward.type}`);
+        });
+
+        Toast.info('You are already onboarded')
+        //delay for the toast to show
+        setTimeout(() => {
+          navigation.navigate("PremiumOnbording");
+        }, 3000);
+
       }
     };
 
-    AdManager.showRewarded((reward) => {
-    console.log(`Earned ${reward.amount} ${reward.type}`);
-  });
+
     handleUserCreation();
   }, [navigation, getOnboarded]);
 
-  const onCLickContinue = async() => {
+  const onCLickContinue = async () => {
     console.log(getOnboarded)
     await AdManager.showInterstitial();
     // setOnboardedTrue();
@@ -104,9 +112,10 @@ export default function App({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+      <ToastManager />
+
       {/* Banner Ad with proper unitId and error handling */}
-      
+
 
       <View style={styles.content}>
         <View style={styles.textContainer}>
@@ -123,15 +132,15 @@ export default function App({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity 
-          style={styles.button} 
-          activeOpacity={0.8} 
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.8}
           onPress={onCLickContinue}
         >
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>
-    
+
     </SafeAreaView>
   );
 }

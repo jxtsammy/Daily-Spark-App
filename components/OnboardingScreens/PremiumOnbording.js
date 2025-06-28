@@ -18,7 +18,7 @@ import { useStore } from '../../store/useStore';
 import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
 import { createFreeTrial } from '../../functions/create-free-trial';
 import AdManager from '../../services/AdManager';
-
+import ToastManager, { Toast } from 'toastify-react-native'
 
 export default function FreeTrialScreen() {
   // Navigation hook
@@ -36,9 +36,16 @@ export default function FreeTrialScreen() {
   const fetchData = async () => {
     try {
       const res = createFreeTrial()
-      if (res) {
+      if (res === true) {
         console.log('Free trial created successfully');
+        Toast.success('Free trial created successfully');
+        // delay for 2 seconds before navigating
+        setTimeout(() => {
         navigation.navigate('Home');
+        }, 2000);
+      }else{
+        console.log('Failed to create free trial');
+        Toast.error('Failed to create free trial');
       }
 
     } catch (error) {
@@ -147,6 +154,7 @@ useEffect(() => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+       <ToastManager />
 
       {/* Floating Dots */}
       {dots.map((dot, index) => (
