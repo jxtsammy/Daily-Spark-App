@@ -17,6 +17,7 @@ import api from '../../helpers/api';
 import { useStore } from '../../store/useStore';
 import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
 import { createFreeTrial } from '../../functions/create-free-trial';
+import AdManager from '../../services/AdManager';
 
 
 export default function FreeTrialScreen() {
@@ -300,6 +301,8 @@ useEffect(() => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {AdManager.getBannerAd()}
     </SafeAreaView>
   );
 }

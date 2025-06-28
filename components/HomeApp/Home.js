@@ -94,13 +94,13 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const fetchQuotes = async () => {
     const res = await CheckActivePaidSubscriptions();
 
-    if (res?.payload === null) {
+    if (res.payload === null) {
       console.log("No active subscription found, using default quotes");
       setQuotes(quotesA);
       return;
     }
 
-    if (!res?.payload?.subscription?.is_free) {
+    if (!res.payload.subscription.is_free ) {
             console.log("Fetching quotes from backend for paid subscription");
 
     } 

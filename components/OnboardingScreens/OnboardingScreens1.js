@@ -29,22 +29,8 @@ import {
   BannerAdSize 
 } from 'react-native-google-mobile-ads';
 import InterstitialManager from '../../services/Ads/InterstitialManager';
-
-// Ad Unit IDs (replace with your actual IDs)
-// const AD_UNIT_IDS = {
-//   BANNER: __DEV__ 
-//     ? TestIds.BANNER 
-//     : 'ca-app-pub-4921191810059647~2308605110',
-//   APP_OPEN: __DEV__
-//     ? TestIds.APP_OPEN
-//     : 'ca-app-pub-4921191810059647~1234567890',
-//   INTERSTITIAL: __DEV__
-//     ? TestIds.INTERSTITIAL
-//     : 'ca-app-pub-4921191810059647~9876543210',
-//   REWARDED: __DEV__
-//     ? TestIds.REWARDED
-//     : 'ca-app-pub-4921191810059647~5678901234'
-// };
+import { AppState } from 'react-native';
+import AdManager from '../../services/AdManager';
 
 export default function App({ navigation }) {
   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
@@ -53,11 +39,14 @@ export default function App({ navigation }) {
   const [userCreatedState, setUserCreatedState] = React.useState(false);
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
 
-  // Initialize ads
-  // useEffect(() => {
-  //   AppOpenAd.createForAdRequest(AD_UNIT_IDS.APP_OPEN);
-  //   InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL);
-  //   RewardedAd.createForAdRequest(AD_UNIT_IDS.REWARDED);
+
+  //  useEffect(() => {
+  //   const subscription = AppState.addEventListener('change', async (state) => {
+  //     if (state === 'active') {
+  //       await AdManager.showAppOpen();
+  //     }
+  //   });
+  //   return () => subscription.remove();
   // }, []);
 
   useEffect(() => {
@@ -65,17 +54,20 @@ export default function App({ navigation }) {
       await createAnonymous("OnboardingScreen")
       if (getOnboarded) {
         console.log('User already onboarded, navigating to PremiumOnboarding');
-        await InterstitialManager.showAd();
+          //  await AdManager.showInterstitial();
         navigation.navigate("PremiumOnbording");
       }
     };
 
+    AdManager.showRewarded((reward) => {
+    console.log(`Earned ${reward.amount} ${reward.type}`);
+  });
     handleUserCreation();
   }, [navigation, getOnboarded]);
 
   const onCLickContinue = async() => {
     console.log(getOnboarded)
-    await InterstitialManager.showAd();
+    await AdManager.showInterstitial();
     // setOnboardedTrue();
     navigation.navigate(initialRouteName);
   }
