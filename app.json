@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "daily-spark-app",
-    "slug": "snack-4fbb0338-49ed-476a-ab04-1372ea60ce13",
+    "slug": "daily-spark",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,26 +21,26 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.ashdev87.snack4fbb033849ed476aab041372ea60ce13"
+      "package": "com.ashdev87.dailyspark"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "a40f02e5-e186-4eb1-8da1-458c368ee6da"
-      }
-    },
     "owner": "ashdev87",
     "plugins": [
       "expo-system-ui",
-       [
+      [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-4921191810059647~2308605110",
           "iosAppId": "ca-app-pub-4921191810059647~3731527689"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "11d03376-e061-44a6-b8f1-7723864b8055"
+      }
+    }
   }
 }

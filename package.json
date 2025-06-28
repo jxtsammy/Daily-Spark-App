@@ -17,6 +17,7 @@
     "axios": "^1.9.0",
     "color": "*",
     "expo": "^53.0.12",
+    "expo-dev-client": "~5.2.2",
     "expo-linear-gradient": "~14.1.5",
     "expo-splash-screen": "~0.30.9",
     "expo-status-bar": "~2.2.3",

@@ -69,9 +69,10 @@ export default function App() {
         mobileAds()
           .initialize()
           .then(adapterStatuses => {
-            // Initialization complete!
+            console.log('Adapter Statuses: ', adapterStatuses);
+
           });
-        // Any other async prep you need can go here
+
       } catch (e) {
         console.warn(e);
       } finally {

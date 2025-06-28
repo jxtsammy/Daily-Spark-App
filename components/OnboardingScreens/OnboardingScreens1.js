@@ -20,36 +20,49 @@ import Svg, {
 } from 'react-native-svg';
 import { useStore } from '../../store/useStore';
 import { createAnonymous } from '../../functions/create-anonymous';
-import { AppOpenAd, InterstitialAd, RewardedAd, BannerAd, TestIds } from 'react-native-google-mobile-ads';
+import { 
+  AppOpenAd, 
+  InterstitialAd, 
+  RewardedAd, 
+  BannerAd, 
+  TestIds,
+  BannerAdSize 
+} from 'react-native-google-mobile-ads';
 
-
-
-
+// Ad Unit IDs (replace with your actual IDs)
+const AD_UNIT_IDS = {
+  BANNER: __DEV__ 
+    ? TestIds.BANNER 
+    : 'ca-app-pub-4921191810059647~2308605110',
+  APP_OPEN: __DEV__
+    ? TestIds.APP_OPEN
+    : 'ca-app-pub-4921191810059647~1234567890',
+  INTERSTITIAL: __DEV__
+    ? TestIds.INTERSTITIAL
+    : 'ca-app-pub-4921191810059647~9876543210',
+  REWARDED: __DEV__
+    ? TestIds.REWARDED
+    : 'ca-app-pub-4921191810059647~5678901234'
+};
 
 export default function App({ navigation }) {
-
   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
   const getOnboarded = useStore((state) => state.onboarded);
   const userId = useStore((state) => state.userId);
   const [userCreatedState, setUserCreatedState] = React.useState(false);
-
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
 
-
-
-//   AppOpenAd.createForAdRequest(TestIds.APP_OPEN);
-
-// InterstitialAd.createForAdRequest(TestIds.INTERSTITIAL);
-
-// RewardedAd.createForAdRequest(TestIds.REWARDED);
-
-<BannerAd unitId={TestIds.BANNER} />
-
+  // Initialize ads
+  useEffect(() => {
+    AppOpenAd.createForAdRequest(AD_UNIT_IDS.APP_OPEN);
+    InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL);
+    RewardedAd.createForAdRequest(AD_UNIT_IDS.REWARDED);
+  }, []);
 
   useEffect(() => {
     const handleUserCreation = async () => {
       await createAnonymous("OnboardingScreen")
-      if (getOnboarded ) {
+      if (getOnboarded) {
         console.log('User already onboarded, navigating to PremiumOnboarding');
         navigation.navigate("PremiumOnbording");
       }
@@ -58,10 +71,9 @@ export default function App({ navigation }) {
     handleUserCreation();
   }, [navigation, getOnboarded]);
 
-
-  const onCLickContinue = () => {
+  const onCLickContinue = async() => {
     console.log(getOnboarded)
-    setOnboardedTrue();
+    // setOnboardedTrue();
     navigation.navigate(initialRouteName);
   }
 
@@ -94,10 +106,13 @@ export default function App({ navigation }) {
     outputRange: [0, -15], // Sun moves up 15 pixels and back down
   });
 
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+      
+      {/* Banner Ad with proper unitId and error handling */}
+      
+
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>Get motivation throughout the day</Text>
@@ -113,10 +128,19 @@ export default function App({ navigation }) {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onCLickContinue}>
+        <TouchableOpacity 
+          style={styles.button} 
+          activeOpacity={0.8} 
+          onPress={onCLickContinue}
+        >
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>
+      <BannerAd
+        unitId={AD_UNIT_IDS.BANNER}
+        size={BannerAdSize.BANNER}
+        onAdFailedToLoad={(error) => console.error('Ad failed to load:', error)}
+      />
     </SafeAreaView>
   );
 }
