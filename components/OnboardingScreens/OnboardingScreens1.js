@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
-  Easing
+  Easing,
+  ActivityIndicator
 } from 'react-native';
 import Svg, {
   Rect,
@@ -26,7 +27,8 @@ import {
   RewardedAd, 
   BannerAd, 
   TestIds,
-  BannerAdSize 
+  BannerAdSize,
+  AdEventType
 } from 'react-native-google-mobile-ads';
 
 // Ad Unit IDs (replace with your actual IDs)
@@ -50,14 +52,65 @@ export default function App({ navigation }) {
   const getOnboarded = useStore((state) => state.onboarded);
   const userId = useStore((state) => state.userId);
   const [userCreatedState, setUserCreatedState] = React.useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
+
+  // Create ref for interstitial ad
+  const interstitialAdRef = useRef(null);
+  const [isInterstitialLoaded, setIsInterstitialLoaded] = useState(false);
 
   // Initialize ads
   useEffect(() => {
+    // Initialize interstitial ad
+    interstitialAdRef.current = InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL);
+    
+    // Set up event listeners
+    const unsubscribeLoaded = interstitialAdRef.current.addAdEventListener(
+      AdEventType.LOADED,
+      () => {
+        setIsInterstitialLoaded(true);
+      }
+    );
+    
+    const unsubscribeClosed = interstitialAdRef.current.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        // Reload ad after it's closed
+        setIsInterstitialLoaded(false);
+        loadInterstitial();
+      }
+    );
+
+    // Load the first interstitial
+    loadInterstitial();
+
+    // Initialize other ads
     AppOpenAd.createForAdRequest(AD_UNIT_IDS.APP_OPEN);
-    InterstitialAd.createForAdRequest(AD_UNIT_IDS.INTERSTITIAL);
     RewardedAd.createForAdRequest(AD_UNIT_IDS.REWARDED);
+
+    return () => {
+      // Clean up event listeners
+      unsubscribeLoaded();
+      unsubscribeClosed();
+    };
   }, []);
+
+  const loadInterstitial = () => {
+    interstitialAdRef.current.load();
+  };
+
+  const showInterstitial = async () => {
+    if (isInterstitialLoaded && interstitialAdRef.current) {
+      try {
+        await interstitialAdRef.current.show();
+        return true;
+      } catch (error) {
+        console.error('Error showing interstitial:', error);
+        return false;
+      }
+    }
+    return false;
+  };
 
   useEffect(() => {
     const handleUserCreation = async () => {
@@ -71,11 +124,34 @@ export default function App({ navigation }) {
     handleUserCreation();
   }, [navigation, getOnboarded]);
 
-  const onCLickContinue = async() => {
-    console.log(getOnboarded)
-    // setOnboardedTrue();
+ const onCLickContinue = async () => {
+  setIsLoading(true);
+  
+  try {
+    // Try to show interstitial ad with timeout
+    const adShown = await Promise.race([
+      showInterstitial(),
+      new Promise((resolve) => setTimeout(() => resolve(false), 5000)) // 5 second timeout
+    ]);
+
+    if (adShown) {
+      // Ad was shown successfully
+      setOnboardedTrue();
+      navigation.navigate(initialRouteName);
+    } else {
+      // Ad failed to show or timed out
+      console.log('Ad not shown or timed out');
+      setOnboardedTrue();
+      navigation.navigate(initialRouteName);
+    }
+  } catch (error) {
+    console.error('Error during continue:', error);
+    setOnboardedTrue();
     navigation.navigate(initialRouteName);
+  } finally {
+    setIsLoading(false);
   }
+}
 
   // Animation value for the sun
   const sunAnimValue = useRef(new Animated.Value(0)).current;
@@ -110,9 +186,6 @@ export default function App({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Banner Ad with proper unitId and error handling */}
-      
-
       <View style={styles.content}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>Get motivation throughout the day</Text>
@@ -132,8 +205,13 @@ export default function App({ navigation }) {
           style={styles.button} 
           activeOpacity={0.8} 
           onPress={onCLickContinue}
+          disabled={isLoading}
         >
-          <Text style={styles.buttonText}>Continue</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#1A2533" />
+          ) : (
+            <Text style={styles.buttonText}>Continue</Text>
+          )}
         </TouchableOpacity>
       </View>
       <BannerAd
