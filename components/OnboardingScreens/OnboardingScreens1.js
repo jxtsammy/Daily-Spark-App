@@ -20,6 +20,10 @@ import Svg, {
 } from 'react-native-svg';
 import { useStore } from '../../store/useStore';
 import { createAnonymous } from '../../functions/create-anonymous';
+import { AppOpenAd, InterstitialAd, RewardedAd, BannerAd, TestIds } from 'react-native-google-mobile-ads';
+
+
+
 
 
 export default function App({ navigation }) {
@@ -33,7 +37,13 @@ export default function App({ navigation }) {
 
 
 
-  
+//   AppOpenAd.createForAdRequest(TestIds.APP_OPEN);
+
+// InterstitialAd.createForAdRequest(TestIds.INTERSTITIAL);
+
+// RewardedAd.createForAdRequest(TestIds.REWARDED);
+
+<BannerAd unitId={TestIds.BANNER} />
 
 
   useEffect(() => {

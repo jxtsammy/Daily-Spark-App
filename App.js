@@ -1,5 +1,5 @@
 // App.js
-import React ,{useState,useEffect}from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Onboarding1 from './components/OnboardingScreens/OnboardingScreens1'
@@ -39,8 +39,9 @@ import AddQuotes from './components/HomeApp/ExporeOptions/AddQuotes'
 import Favorites from './components/HomeApp/ExporeOptions/Favorites'
 import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
 import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
-
 import * as SplashScreen from 'expo-splash-screen';
+
+import mobileAds from 'react-native-google-mobile-ads';
 import { createAnonymous } from './functions/create-anonymous';
 
 // Keep the splash screen visible while we fetch resources
@@ -63,7 +64,13 @@ export default function App() {
             resolve();
           });
         });
-        
+
+
+        mobileAds()
+          .initialize()
+          .then(adapterStatuses => {
+            // Initialization complete!
+          });
         // Any other async prep you need can go here
       } catch (e) {
         console.warn(e);
@@ -78,9 +85,15 @@ export default function App() {
     prepare();
   }, []);
 
+
+
+
+
   if (!appIsReady) {
     return null; // Splash screen will remain visible during this time
   }
+
+
 
 
 
