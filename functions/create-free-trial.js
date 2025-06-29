@@ -9,8 +9,12 @@ export const createFreeTrial = async () => {
     try {
         if (!userId) {
             console.error('User ID is required to create a free trial');
-            await createAnonymous();
-            return false;
+            const res = await createAnonymous();
+            if (!res) {
+                Toast.error('Failed to create anonymous user. Please try again.');
+                return false;
+            }
+            console.log('Anonymous user created successfully in createFreeTrial');
         }
 
         const response0 = await api.post('/subscriptions/assign-free-plan', {
@@ -23,7 +27,7 @@ export const createFreeTrial = async () => {
             console.log('User already has an active free trial');
             setSubscriptionId(response0.data.payload.id);
             Toast.info('You already have an active free trial.');
-            return false; // User already has an active free trial
+            return true; 
         }
 
         if (response0.data.payload && response0.data.payload.id) {

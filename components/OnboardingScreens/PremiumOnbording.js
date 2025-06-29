@@ -8,71 +8,62 @@ import {
   StatusBar,
   Platform,
   Switch,
-  Animated
+  Animated,
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import api from '../../helpers/api';
-import { useStore } from '../../store/useStore';
 import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
 import { createFreeTrial } from '../../functions/create-free-trial';
 import AdManager from '../../services/AdManager';
-import ToastManager, { Toast } from 'toastify-react-native'
+import ToastManager, { Toast } from 'toastify-react-native';
+import { createAnonymous } from '../../functions/create-anonymous';
 
 export default function FreeTrialScreen() {
-  // Navigation hook
   const navigation = useNavigation();
-
-  // State for reminder toggle
   const [reminderEnabled, setReminderEnabled] = useState(false);
-
-  // Animated values for floating dots
+  const [loading, setLoading] = useState(false);
   const [dots, setDots] = useState([]);
 
-
-
-
   const fetchData = async () => {
+    setLoading(true);
     try {
-      const res = createFreeTrial()
-      if (res === true) {
-        console.log('Free trial created successfully');
-        Toast.success('Free trial created successfully');
-        // delay for 2 seconds before navigating
+      const res = await createFreeTrial();
+      if (res) {
+        Toast.success('Free trial started successfully!');
         setTimeout(() => {
-        navigation.navigate('Home');
-        }, 2000);
-      }else{
-        console.log('Failed to create free trial');
-        Toast.error('Failed to create free trial');
+          navigation.navigate('Home');
+        }, 1500);
+      } else {
+        Toast.error(res?.message || 'Failed to start free trial');
       }
-
     } catch (error) {
       console.error('API Error:', error);
+      Toast.error('An error occurred while starting your trial');
+    } finally {
+      setLoading(false);
     }
   };
 
-useEffect(() => {
-  const checkFreeTrial = async () => {
-    const hasActiveTrial = await CheckHasFreeTrial();
-    console.log('Free trial status:', hasActiveTrial);
-    
-    if (hasActiveTrial) {
-      console.log('Navigating to home - active trial found');
-      navigation.navigate('Home');
-    } else {
-      console.log('No active trial found');
-      
-    }
-  };
+  useEffect(() => {
+    const checkFreeTrialStatus = async () => {
+      try {
+        await createAnonymous('FreeTrialScreen');
+        const hasActiveTrial = await CheckHasFreeTrial();
+        if (hasActiveTrial) {
+          navigation.navigate('Home');
+        }
+      } catch (error) {
+        console.error('Error checking trial status:', error);
+        Toast.error('Failed to check trial status');
+      }
+    };
 
-  
-  checkFreeTrial();
-}, [navigation]);
+    checkFreeTrialStatus();
+  }, [navigation]);
 
-
-  // Set status bar to light content (white text)
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
     if (Platform.OS === 'android') {
@@ -80,14 +71,20 @@ useEffect(() => {
       StatusBar.setTranslucent(true);
     }
 
-    // Create animated dots
     createFloatingDots();
+    return () => {
+      // Clean up animations when component unmounts
+      dots.forEach(dot => {
+        dot.posX.stopAnimation();
+        dot.posY.stopAnimation();
+        dot.opacity.stopAnimation();
+      });
+    };
   }, []);
 
-  // Create animated floating dots
   const createFloatingDots = () => {
     const newDots = [];
-    const numDots = 15;
+    const numDots = Platform.OS === 'ios' ? 20 : 15; // More dots on iOS for better performance
 
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
@@ -95,35 +92,32 @@ useEffect(() => {
       const size = Math.random() * 6 + 8;
       const opacity = new Animated.Value(Math.random() * 0.5 + 0.4);
 
-      // Animate dot position
       Animated.loop(
-        Animated.sequence([
-          Animated.timing(posY, {
-            toValue: Math.random() * 100,
-            duration: 5000 + Math.random() * 10000,
-            useNativeDriver: false,
-          }),
-          Animated.timing(posX, {
-            toValue: Math.random() * 100,
-            duration: 5000 + Math.random() * 10000,
-            useNativeDriver: false,
-          })
-        ])
-      ).start();
-
-      // Animate dot opacity
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(opacity, {
-            toValue: Math.random() * 0.3 + 0.1,
-            duration: 3000 + Math.random() * 5000,
-            useNativeDriver: false,
-          }),
-          Animated.timing(opacity, {
-            toValue: Math.random() * 0.5 + 0.1,
-            duration: 3000 + Math.random() * 5000,
-            useNativeDriver: false,
-          })
+        Animated.parallel([
+          Animated.sequence([
+            Animated.timing(posY, {
+              toValue: Math.random() * 100,
+              duration: 5000 + Math.random() * 10000,
+              useNativeDriver: false,
+            }),
+            Animated.timing(posX, {
+              toValue: Math.random() * 100,
+              duration: 5000 + Math.random() * 10000,
+              useNativeDriver: false,
+            })
+          ]),
+          Animated.sequence([
+            Animated.timing(opacity, {
+              toValue: Math.random() * 0.3 + 0.1,
+              duration: 3000 + Math.random() * 5000,
+              useNativeDriver: false,
+            }),
+            Animated.timing(opacity, {
+              toValue: Math.random() * 0.5 + 0.1,
+              duration: 3000 + Math.random() * 5000,
+              useNativeDriver: false,
+            })
+          ])
         ])
       ).start();
 
@@ -133,30 +127,35 @@ useEffect(() => {
     setDots(newDots);
   };
 
-  // Handle close button press
   const handleClose = () => {
     navigation.navigate('WidgetOnboarding');
   };
 
-  // Handle start trial button press
-  const handleStartTrial = () => {
-    // Add a console log to debug
-    fetchData()
-    // Try using replace instead of navigate
-    // navigation.replace('MoodSelection');
+  const handleStartTrial = async () => {
+    if (loading) return;
+    await fetchData();
   };
 
-  // Toggle reminder
   const toggleReminder = () => {
-    setReminderEnabled(!reminderEnabled);
+    setReminderEnabled(prev => !prev);
+    Toast.info(`Reminder ${!reminderEnabled ? 'enabled' : 'disabled'}`);
+  };
+
+  const openLink = async (url) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Failed to open link:', error);
+      Toast.error('Could not open link');
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-       <ToastManager />
+      <ToastManager />
 
-      {/* Floating Dots */}
+      {/* Floating Dots Background */}
       {dots.map((dot, index) => (
         <Animated.View
           key={index}
@@ -165,31 +164,33 @@ useEffect(() => {
             {
               left: dot.posX.interpolate({
                 inputRange: [0, 100],
-                outputRange: ['0%', '100%'],
+                outputRange: ['0%', '90%'],
               }),
               top: dot.posY.interpolate({
                 inputRange: [0, 100],
-                outputRange: ['0%', '100%'],
+                outputRange: ['0%', '90%'],
               }),
               width: dot.size,
               height: dot.size,
               opacity: dot.opacity,
+              borderRadius: dot.size / 2,
             },
           ]}
         />
       ))}
 
-      {/* Close Button (X) */}
+      {/* Close Button */}
       <TouchableOpacity
         style={styles.closeButton}
         onPress={handleClose}
         activeOpacity={0.7}
+        hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
       >
         <X size={24} color="white" />
       </TouchableOpacity>
 
       <View style={styles.content}>
-        {/* Header */}
+        {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.title}>How your free trial works</Text>
           <Text style={styles.subtitle}>
@@ -197,10 +198,9 @@ useEffect(() => {
           </Text>
         </View>
 
-        {/* Trial Timeline */}
+        {/* Timeline Section */}
         <View style={styles.timelineContainer}>
           <View style={styles.timeline}>
-            {/* Timeline Bar */}
             <View style={styles.timelineBar}>
               <LinearGradient
                 colors={['#F2709C', 'purple', '#4A5568']}
@@ -209,7 +209,6 @@ useEffect(() => {
               />
             </View>
 
-            {/* Timeline Items */}
             <View style={styles.timelineItems}>
               {/* Today */}
               <View style={styles.timelineItem}>
@@ -285,31 +284,38 @@ useEffect(() => {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleStartTrial}
+          disabled={loading}
+          style={[styles.startTrialButton, loading && styles.disabledButton]}
         >
           <LinearGradient
             colors={['purple', '#F2709C']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.startTrialButton}
+            style={styles.gradient}
           >
-            <Text style={styles.startTrialText}>Start 3-day free trial now</Text>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.startTrialText}>Start 3-day free trial now</Text>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
         {/* Footer Links */}
         <View style={styles.footerLinks}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => openLink('https://example.com/restore')}>
             <Text style={styles.footerLink}>Restore</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.footerLink}>Terms & Conditions</Text>
+          <TouchableOpacity onPress={() => openLink('https://example.com/terms')}>
+            <Text style={styles.footerLink}>Terms</Text>
           </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.footerLink}>Privacy Policy</Text>
+          <TouchableOpacity onPress={() => openLink('https://example.com/privacy')}>
+            <Text style={styles.footerLink}>Privacy</Text>
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* Ad Banner */}
       {AdManager.getBannerAd()}
     </SafeAreaView>
   );
@@ -449,14 +455,20 @@ const styles = StyleSheet.create({
   },
   startTrialButton: {
     borderRadius: 30,
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  gradient: {
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 20,
   },
   startTrialText: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
   footerLinks: {
     flexDirection: 'row',
@@ -469,8 +481,7 @@ const styles = StyleSheet.create({
   },
   floatingDot: {
     position: 'absolute',
-    borderRadius: 50,
-    backgroundColor: 'white',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     zIndex: -1,
   },
 });

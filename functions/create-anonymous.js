@@ -6,6 +6,7 @@ export const createAnonymous = async (location) => {
   try {
     const { 
       userId, 
+      isAnonymous,
       setUser, 
       setUserId,
       setIdToken,
@@ -16,12 +17,17 @@ export const createAnonymous = async (location) => {
     } = useStore.getState();
     
     console.log(`[${location}] Current User State:`, { 
-      existingUserId: userId 
+      existingUserId: userId,
+      isAnonymous
     });
     
-    if (userId) {
-      console.log(`[${location}] User already exists - no action needed`);
-      Toast.info('User already exists.');
+    if (userId && isAnonymous) {
+      console.log(`[${location}] User is already anonymous - no action needed`);
+      Toast.info('You are already signed in anonymously.');
+      return true;
+    } else if (userId && !isAnonymous) {
+      console.log(`[${location}] User is already registered with email.`);
+      Toast.info('You are already registered with an email.');
       return true;
     }
 

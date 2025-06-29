@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configure base URL (replace with your API endpoint)
 const api = axios.create({
-  baseURL: 'http://172.20.10.2:3000', 
+  baseURL: 'https://daily-spark-be.vercel.app', 
   timeout: 50000, 
   headers: {
     'Accept': 'application/json',
