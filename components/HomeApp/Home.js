@@ -14,16 +14,24 @@ import {
   StatusBar,
   Platform,
   ImageBackground,
+  Alert,
 } from "react-native"
 import Ionicons from "react-native-vector-icons/Ionicons"
 import { Crown } from "lucide-react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import ViewShot from "react-native-view-shot"
 import PremiumModal from "./PremiumModal"
 import SettingsModal from "./SettingScreen"
 import ThemesModal from "./Themes"
 import Color from "color"
 
 const { width, height } = Dimensions.get("window")
+
+// App Store Links - UPDATE THESE WITH YOUR ACTUAL LINKS
+const APP_STORE_LINKS = {
+  ios: "https://apps.apple.com/app/your-app-id",
+  android: "https://play.google.com/store/apps/details?id=your.package.name",
+}
 
 // Sample quotes data
 const quotes = [
@@ -70,7 +78,8 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [themesModalVisible, setThemesModalVisible] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(defaultTheme)
   const [isDark, setIsDark] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false) // Add animation state
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
 
   // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current
@@ -78,6 +87,9 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const prevQuoteAnim = useRef(new Animated.Value(-height)).current
   const heartScale = useRef(new Animated.Value(0)).current
   const heartOpacity = useRef(new Animated.Value(0)).current
+
+  // Ref for capturing the share image
+  const viewShotRef = useRef()
 
   // Get current quote
   const currentQuote = quotes[currentQuoteIndex]
@@ -107,41 +119,102 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   // Get background color for UI elements
   const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)")
 
-  // FIXED: Improved Pan responder with better gesture handling
+  // Get platform-specific app store link
+  const getAppStoreLink = () => {
+    return Platform.OS === "ios" ? APP_STORE_LINKS.ios : APP_STORE_LINKS.android
+  }
+
+  // Create and share image
+  const handleShare = async () => {
+    if (isAnimating || isSharing) return
+
+    try {
+      setIsSharing(true)
+
+      // First try to capture the image
+      if (viewShotRef.current && viewShotRef.current.capture) {
+        try {
+          const uri = await viewShotRef.current.capture()
+          console.log("Image captured:", uri)
+
+          // Get the appropriate app store link
+          const appStoreLink = getAppStoreLink()
+
+          // Try to share with image
+          const shareOptions = {
+            title: "Daily Inspiration",
+            message: `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`,
+          }
+
+          // Add URL for iOS, different approach for Android
+          if (Platform.OS === 'ios') {
+            shareOptions.url = uri
+          } else {
+            // For Android, we'll share the message and handle image separately
+            shareOptions.message = `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`
+          }
+
+          const result = await Share.share(shareOptions)
+          console.log('Share result:', result)
+
+        } catch (captureError) {
+          console.log("Image capture failed, sharing text only:", captureError)
+          // Fallback to text-only sharing
+          await shareTextOnly()
+        }
+      } else {
+        console.log("ViewShot ref not available, sharing text only")
+        await shareTextOnly()
+      }
+
+    } catch (error) {
+      console.log("Share error:", error)
+      Alert.alert("Share Failed", "Unable to share the quote. Please try again.")
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  // Fallback text-only sharing
+  const shareTextOnly = async () => {
+    const appStoreLink = getAppStoreLink()
+    await Share.share({
+      message: `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`,
+      title: "Daily Inspiration",
+    })
+  }
+
+  // Pan responder implementation (keeping existing)
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isAnimating, // Prevent gestures during animation
+      onStartShouldSetPanResponder: () => !isAnimating && !isSharing,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return !isAnimating && Math.abs(gestureState.dy) > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
+        return !isAnimating && !isSharing && Math.abs(gestureState.dy) > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
       },
       onPanResponderGrant: () => {
-        // Reset animation values when gesture starts
         swipeAnim.setValue(0)
         nextQuoteAnim.setValue(height)
         prevQuoteAnim.setValue(-height)
       },
       onPanResponderMove: (_, gestureState) => {
-        if (isAnimating) return // Prevent movement during animation
+        if (isAnimating || isSharing) return
 
         if (gestureState.dy < 0) {
-          // Swiping up - show next quote
           const progress = Math.max(gestureState.dy, -height)
           swipeAnim.setValue(progress)
           nextQuoteAnim.setValue(height + progress)
         } else if (gestureState.dy > 0) {
-          // Swiping down - show previous quote
           const progress = Math.min(gestureState.dy, height)
           swipeAnim.setValue(progress)
           prevQuoteAnim.setValue(-height + progress)
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (isAnimating) return
+        if (isAnimating || isSharing) return
 
-        const threshold = height * 0.2 // 20% of screen height
+        const threshold = height * 0.2
 
         if (gestureState.dy < -threshold && gestureState.vy < -0.5) {
-          // Swipe up to next quote
           setIsAnimating(true)
           Animated.parallel([
             Animated.timing(swipeAnim, {
@@ -157,14 +230,12 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           ]).start(() => {
             setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length)
             setCurrentQuoteLiked(false)
-            // Reset animations
             swipeAnim.setValue(0)
             nextQuoteAnim.setValue(height)
             prevQuoteAnim.setValue(-height)
             setIsAnimating(false)
           })
         } else if (gestureState.dy > threshold && gestureState.vy > 0.5) {
-          // Swipe down to previous quote
           setIsAnimating(true)
           Animated.parallel([
             Animated.timing(swipeAnim, {
@@ -180,14 +251,12 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           ]).start(() => {
             setCurrentQuoteIndex((prevIndex) => (prevIndex === 0 ? quotes.length - 1 : prevIndex - 1))
             setCurrentQuoteLiked(false)
-            // Reset animations
             swipeAnim.setValue(0)
             nextQuoteAnim.setValue(height)
             prevQuoteAnim.setValue(-height)
             setIsAnimating(false)
           })
         } else {
-          // Return to original position
           Animated.parallel([
             Animated.spring(swipeAnim, {
               toValue: 0,
@@ -211,7 +280,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         }
       },
       onPanResponderTerminate: () => {
-        // Handle gesture termination
         Animated.parallel([
           Animated.spring(swipeAnim, {
             toValue: 0,
@@ -236,21 +304,18 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     }),
   ).current
 
-  // FIXED: Handle like action with proper state management
+  // Handle like action (keeping existing)
   const handleLike = () => {
-    if (isAnimating) return // Prevent action during animation
+    if (isAnimating || isSharing) return
 
     if (currentQuoteLiked) {
-      // Unlike the quote
       setLikedQuotes((prev) => prev.filter(id => id !== currentQuote.id))
       setCurrentQuoteLiked(false)
     } else if (likedQuotes.length < maxProgress) {
-      // Like the quote
       if (!likedQuotes.includes(currentQuote.id)) {
         setLikedQuotes((prev) => [...prev, currentQuote.id])
         setCurrentQuoteLiked(true)
 
-        // Animate heart
         heartScale.setValue(0)
         heartOpacity.setValue(0)
 
@@ -286,51 +351,59 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     }
   }
 
-  // FIXED: Handle share action with error handling
-  const handleShare = async () => {
-    if (isAnimating) return
-
-    try {
-      const result = await Share.share({
-        message: currentQuote.text,
-        title: "Daily Inspiration",
-      })
-      console.log('Share result:', result)
-    } catch (error) {
-      console.log("Error sharing:", error)
-    }
-  }
-
-  // FIXED: Modal handlers with proper state management
+  // Modal handlers (keeping existing)
   const togglePremiumModal = () => {
-    if (isAnimating) return
+    if (isAnimating || isSharing) return
     setPremiumModalVisible(!premiumModalVisible)
   }
 
   const toggleSettingsModal = () => {
-    if (isAnimating) return
+    if (isAnimating || isSharing) return
     setSettingsModalVisible(!settingsModalVisible)
   }
 
   const toggleThemesModal = () => {
-    if (isAnimating) return
+    if (isAnimating || isSharing) return
     setThemesModalVisible(!themesModalVisible)
   }
 
-  // Handle theme change
   const handleThemeChange = (theme) => {
     setCurrentTheme(theme)
   }
 
-  // FIXED: Navigation handler
   const handleNavigation = (screenName) => {
-    if (isAnimating) return
+    if (isAnimating || isSharing) return
     if (navigation && navigation.navigate) {
       navigation.navigate(screenName)
     }
   }
 
-  // Render background based on current theme
+  // Render background for share image
+  const renderShareBackground = () => {
+    if (currentTheme.type === "color" && !currentTheme.isGradient) {
+      return { backgroundColor: currentTheme.value }
+    } else if (currentTheme.type === "gradient") {
+      return (
+        <LinearGradient
+          colors={currentTheme.value}
+          style={StyleSheet.absoluteFillObject}
+        />
+      )
+    } else if (currentTheme.type === "image") {
+      return (
+        <ImageBackground
+          source={{ uri: currentTheme.value }}
+          style={StyleSheet.absoluteFillObject}
+          resizeMode="cover"
+        >
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0, 0, 0, 0.3)" }]} />
+        </ImageBackground>
+      )
+    }
+    return { backgroundColor: "#F5F5F0" }
+  }
+
+  // Render background for main view
   const renderBackground = () => {
     if (currentTheme.type === "color" && !currentTheme.isGradient) {
       return <View style={[styles.backgroundContainer, { backgroundColor: currentTheme.value }]} />
@@ -346,21 +419,46 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     return <View style={[styles.backgroundContainer, { backgroundColor: "#F5F5F0" }]} />
   }
 
-  // Get the current text color
   const textColor = getTextColor()
   const elementBgColor = getElementBgColor()
-
-  // Get heart icon name based on liked status
   const getHeartIconName = () => (currentQuoteLiked ? "heart" : "heart-outline")
 
   return (
     <View style={styles.container}>
       {renderBackground()}
 
+      {/* Hidden ViewShot for creating share images */}
+      <ViewShot
+        ref={viewShotRef}
+        options={{
+          fileName: "quote-share",
+          format: "png",
+          quality: 0.9,
+          width: 400,
+          height: 600,
+        }}
+        style={styles.shareImageContainer}
+      >
+        <View style={[styles.shareBackground, renderShareBackground()]}>
+          {currentTheme.type === "gradient" && renderShareBackground()}
+          {currentTheme.type === "image" && renderShareBackground()}
+          <View style={styles.shareContent}>
+            <Text style={[styles.shareQuoteText, { color: textColor }]}>
+              {currentQuote.text}
+            </Text>
+            <View style={styles.shareAppLink}>
+              <Text style={[styles.shareAppText, { color: textColor }]}>
+                » motivation.app
+              </Text>
+            </View>
+          </View>
+        </View>
+      </ViewShot>
+
       <SafeAreaView style={styles.safeArea}>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-        {/* FIXED: Header with proper touch targets */}
+        {/* Header */}
         <View style={styles.header}>
           <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
             <Ionicons name="heart" size={18} color={textColor} style={{ opacity: progress > 0 ? 1 : 0.3 }} />
@@ -384,7 +482,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
               />
             </View>
           </View>
-
           <TouchableOpacity
             style={[styles.crownButton, { backgroundColor: elementBgColor }]}
             onPress={togglePremiumModal}
@@ -395,10 +492,9 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           </TouchableOpacity>
         </View>
 
-        {/* FIXED: Quote container with proper gesture handling */}
+        {/* Quote container */}
         <View style={styles.quoteContainer}>
           <View style={styles.gestureArea} {...panResponder.panHandlers}>
-            {/* Previous quote */}
             <Animated.View
               style={[styles.quoteWrapper, styles.prevQuote, { transform: [{ translateY: prevQuoteAnim }] }]}
               pointerEvents="none"
@@ -406,7 +502,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
               <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text}</Text>
             </Animated.View>
 
-            {/* Current quote */}
             <Animated.View
               style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}
               pointerEvents="none"
@@ -414,7 +509,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
               <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text}</Text>
             </Animated.View>
 
-            {/* Next quote */}
             <Animated.View
               style={[styles.quoteWrapper, styles.nextQuote, { transform: [{ translateY: nextQuoteAnim }] }]}
               pointerEvents="none"
@@ -438,17 +532,21 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           <Ionicons name="heart" size={120} color="#fff" />
         </Animated.View>
 
-        {/* FIXED: Action buttons with proper touch handling */}
+        {/* Action buttons */}
         <View style={styles.actionContainer}>
           <TouchableOpacity
             onPress={handleShare}
             style={styles.actionButton}
             activeOpacity={0.7}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            disabled={isSharing}
           >
-            <Ionicons name="share-outline" size={28} color={textColor} />
+            <Ionicons
+              name={isSharing ? "hourglass-outline" : "share-outline"}
+              size={28}
+              color={textColor}
+            />
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={handleLike}
             style={styles.actionButton}
@@ -463,7 +561,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           Swipe up/down
         </Text>
 
-        {/* FIXED: Bottom navigation with proper touch targets */}
+        {/* Bottom navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
@@ -473,7 +571,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           >
             <Ionicons name="grid" size={24} color={textColor} />
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleThemesModal}
@@ -482,7 +579,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
           >
             <Ionicons name="color-wand" size={24} color={textColor} />
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleSettingsModal}
@@ -508,7 +604,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   )
 }
 
-// FIXED: Updated styles with better touch targets
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -530,7 +625,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 20,
-    zIndex: 10, // Ensure header is above gesture area
+    zIndex: 10,
   },
   progressContainer: {
     flexDirection: "row",
@@ -635,5 +730,47 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+  },
+  // Share image styles
+  shareImageContainer: {
+    position: "absolute",
+    top: -10000, // Hide off-screen
+    left: 0,
+    width: 400,
+    height: 600,
+  },
+  shareBackground: {
+    width: 400,
+    height: 600,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  shareContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    position: "relative",
+  },
+  shareQuoteText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    lineHeight: 42,
+    marginBottom: 60,
+  },
+  shareAppLink: {
+    position: "absolute",
+    bottom: 80,
+    alignItems: "center",
+  },
+  shareAppText: {
+    fontSize: 16,
+    fontWeight: "600",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: "hidden",
   },
 })
