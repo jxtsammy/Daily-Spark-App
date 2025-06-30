@@ -25,6 +25,7 @@ export default function FreeTrialScreen() {
   const navigation = useNavigation();
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const [dots, setDots] = useState([]);
 
   const fetchData = async () => {
@@ -34,7 +35,7 @@ export default function FreeTrialScreen() {
       if (res) {
         Toast.success('Free trial started successfully!');
         setTimeout(() => {
-          navigation.navigate('Home');
+          navigation.replace('Home');
         }, 1500);
       } else {
         Toast.error(res?.message || 'Failed to start free trial');
@@ -48,20 +49,38 @@ export default function FreeTrialScreen() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    const timeout = setTimeout(() => {
+      if (isMounted) {
+        setCheckingStatus(false);
+        Toast.error('Connection timeout');
+      }
+    }, 10000); // 10 second timeout
+
     const checkFreeTrialStatus = async () => {
       try {
+        setCheckingStatus(true);
         await createAnonymous('FreeTrialScreen');
         const hasActiveTrial = await CheckHasFreeTrial();
         if (hasActiveTrial) {
-          navigation.navigate('Home');
+          navigation.replace('Home');
         }
       } catch (error) {
         console.error('Error checking trial status:', error);
         Toast.error('Failed to check trial status');
+      } finally {
+        if (isMounted) {
+          clearTimeout(timeout);
+          setCheckingStatus(false);
+        }
       }
     };
 
     checkFreeTrialStatus();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+    };
   }, [navigation]);
 
   useEffect(() => {
@@ -73,7 +92,6 @@ export default function FreeTrialScreen() {
 
     createFloatingDots();
     return () => {
-      // Clean up animations when component unmounts
       dots.forEach(dot => {
         dot.posX.stopAnimation();
         dot.posY.stopAnimation();
@@ -84,7 +102,7 @@ export default function FreeTrialScreen() {
 
   const createFloatingDots = () => {
     const newDots = [];
-    const numDots = Platform.OS === 'ios' ? 20 : 15; // More dots on iOS for better performance
+    const numDots = Platform.OS === 'ios' ? 20 : 15;
 
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
@@ -149,6 +167,14 @@ export default function FreeTrialScreen() {
       Toast.error('Could not open link');
     }
   };
+
+  if (checkingStatus) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -326,6 +352,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#222',
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
