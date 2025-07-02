@@ -15,74 +15,57 @@ import {
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import api from '../../helpers/api';
+import { useStore } from '../../store/useStore';
 import { CheckHasFreeTrial } from '../../functions/check-has-free-trial';
 import { createFreeTrial } from '../../functions/create-free-trial';
-import AdManager from '../../services/AdManager';
-import ToastManager, { Toast } from 'toastify-react-native';
-import { createAnonymous } from '../../functions/create-anonymous';
+
 
 export default function FreeTrialScreen() {
   const navigation = useNavigation();
+
+  // State for reminder toggle
   const [reminderEnabled, setReminderEnabled] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(true);
+
+  // Animated values for floating dots
   const [dots, setDots] = useState([]);
 
+
+
+
   const fetchData = async () => {
-    setLoading(true);
     try {
-      const res = await createFreeTrial();
+      const res = createFreeTrial()
       if (res) {
-        Toast.success('Free trial started successfully!');
-        setTimeout(() => {
-          navigation.replace('Home');
-        }, 1500);
-      } else {
-        Toast.error(res?.message || 'Failed to start free trial');
+        console.log('Free trial created successfully');
+        navigation.navigate('Home');
       }
+
     } catch (error) {
       console.error('API Error:', error);
-      Toast.error('An error occurred while starting your trial');
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    const timeout = setTimeout(() => {
-      if (isMounted) {
-        setCheckingStatus(false);
-        Toast.error('Connection timeout');
-      }
-    }, 10000); // 10 second timeout
+useEffect(() => {
+  const checkFreeTrial = async () => {
+    const hasActiveTrial = await CheckHasFreeTrial();
+    console.log('Free trial status:', hasActiveTrial);
 
-    const checkFreeTrialStatus = async () => {
-      try {
-        setCheckingStatus(true);
-        await createAnonymous('FreeTrialScreen');
-        const hasActiveTrial = await CheckHasFreeTrial();
-        if (hasActiveTrial) {
-          navigation.replace('Home');
-        }
-      } catch (error) {
-        console.error('Error checking trial status:', error);
-        Toast.error('Failed to check trial status');
-      } finally {
-        if (isMounted) {
-          clearTimeout(timeout);
-          setCheckingStatus(false);
-        }
-      }
-    };
+    if (hasActiveTrial) {
+      console.log('Navigating to home - active trial found');
+      navigation.navigate('Home');
+    } else {
+      console.log('No active trial found');
 
-    checkFreeTrialStatus();
-    return () => {
-      isMounted = false;
-      clearTimeout(timeout);
-    };
-  }, [navigation]);
+    }
+  };
 
+
+  checkFreeTrial();
+}, [navigation]);
+
+
+  // Set status bar to light content (white text)
   useEffect(() => {
     StatusBar.setBarStyle('light-content');
     if (Platform.OS === 'android') {
@@ -90,6 +73,7 @@ export default function FreeTrialScreen() {
       StatusBar.setTranslucent(true);
     }
 
+    // Create animated dots
     createFloatingDots();
     return () => {
       dots.forEach(dot => {
@@ -100,9 +84,10 @@ export default function FreeTrialScreen() {
     };
   }, []);
 
+  // Create animated floating dots
   const createFloatingDots = () => {
     const newDots = [];
-    const numDots = Platform.OS === 'ios' ? 20 : 15;
+    const numDots = 15;
 
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
@@ -110,32 +95,35 @@ export default function FreeTrialScreen() {
       const size = Math.random() * 6 + 8;
       const opacity = new Animated.Value(Math.random() * 0.5 + 0.4);
 
+      // Animate dot position
       Animated.loop(
-        Animated.parallel([
-          Animated.sequence([
-            Animated.timing(posY, {
-              toValue: Math.random() * 100,
-              duration: 5000 + Math.random() * 10000,
-              useNativeDriver: false,
-            }),
-            Animated.timing(posX, {
-              toValue: Math.random() * 100,
-              duration: 5000 + Math.random() * 10000,
-              useNativeDriver: false,
-            })
-          ]),
-          Animated.sequence([
-            Animated.timing(opacity, {
-              toValue: Math.random() * 0.3 + 0.1,
-              duration: 3000 + Math.random() * 5000,
-              useNativeDriver: false,
-            }),
-            Animated.timing(opacity, {
-              toValue: Math.random() * 0.5 + 0.1,
-              duration: 3000 + Math.random() * 5000,
-              useNativeDriver: false,
-            })
-          ])
+        Animated.sequence([
+          Animated.timing(posY, {
+            toValue: Math.random() * 100,
+            duration: 5000 + Math.random() * 10000,
+            useNativeDriver: false,
+          }),
+          Animated.timing(posX, {
+            toValue: Math.random() * 100,
+            duration: 5000 + Math.random() * 10000,
+            useNativeDriver: false,
+          })
+        ])
+      ).start();
+
+      // Animate dot opacity
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(opacity, {
+            toValue: Math.random() * 0.3 + 0.1,
+            duration: 3000 + Math.random() * 5000,
+            useNativeDriver: false,
+          }),
+          Animated.timing(opacity, {
+            toValue: Math.random() * 0.5 + 0.1,
+            duration: 3000 + Math.random() * 5000,
+            useNativeDriver: false,
+          })
         ])
       ).start();
 
@@ -145,15 +133,20 @@ export default function FreeTrialScreen() {
     setDots(newDots);
   };
 
+  // Handle close button press
   const handleClose = () => {
     navigation.navigate('WidgetOnboarding');
   };
 
-  const handleStartTrial = async () => {
-    if (loading) return;
-    await fetchData();
+  // Handle start trial button press
+  const handleStartTrial = () => {
+    // Add a console log to debug
+    fetchData()
+    // Try using replace instead of navigate
+    // navigation.replace('MoodSelection');
   };
 
+  // Toggle reminder
   const toggleReminder = () => {
     setReminderEnabled(prev => !prev);
     Toast.info(`Reminder ${!reminderEnabled ? 'enabled' : 'disabled'}`);
@@ -179,9 +172,8 @@ export default function FreeTrialScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ToastManager />
 
-      {/* Floating Dots Background */}
+      {/* Floating Dots */}
       {dots.map((dot, index) => (
         <Animated.View
           key={index}
@@ -205,7 +197,7 @@ export default function FreeTrialScreen() {
         />
       ))}
 
-      {/* Close Button */}
+      {/* Close Button (X) */}
       <TouchableOpacity
         style={styles.closeButton}
         onPress={handleClose}
@@ -224,7 +216,7 @@ export default function FreeTrialScreen() {
           </Text>
         </View>
 
-        {/* Timeline Section */}
+        {/* Trial Timeline */}
         <View style={styles.timelineContainer}>
           <View style={styles.timeline}>
             <View style={styles.timelineBar}>
@@ -235,6 +227,7 @@ export default function FreeTrialScreen() {
               />
             </View>
 
+            {/* Timeline Items */}
             <View style={styles.timelineItems}>
               {/* Today */}
               <View style={styles.timelineItem}>

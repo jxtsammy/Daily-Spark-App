@@ -220,7 +220,7 @@ export default function SettingsModal({ visible, onClose }) {
               </View>
               <ChevronRight size={20} color="#A0AEC0" />
             </TouchableOpacity>
-{/* 
+{/*
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => navigation.navigate('Reminders')}>
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 70 : StatusBar.currentHeight + 20,
+    paddingTop: Platform.OS === 'ios' ? 70 : 20,
   },
   header: {
     flexDirection: 'row',

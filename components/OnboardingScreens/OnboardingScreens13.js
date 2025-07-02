@@ -137,7 +137,7 @@ export default function MoodSelectionScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>
-            How have you been feeling lately, thegr8kid?
+            How would you decribe how you've been feeling lately?
           </Text>
           <Text style={styles.subtitle}>
             You'll see quotes that align with your current mood

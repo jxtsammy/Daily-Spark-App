@@ -1,5 +1,6 @@
 // App.js
 import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Onboarding1 from './components/OnboardingScreens/OnboardingScreens1'
@@ -50,56 +51,6 @@ SplashScreen.preventAutoHideAsync();
 const Stack = createNativeStackNavigator();
 
 export default function App() {
-
-  const [appIsReady, setAppIsReady] = useState(false);
-
-
-  useEffect(() => {
-    async function prepare() {
-      try {
-        // Wait for store to hydrate
-        await new Promise((resolve) => {
-          const unsub = useStore.persist.onFinishHydration(() => {
-            unsub(); // Cleanup subscription
-            resolve();
-          });
-        });
-
-
-        mobileAds()
-          .initialize()
-          .then(adapterStatuses => {
-            console.log('Adapter Statuses: ', adapterStatuses);
-
-          });
-
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        // Tell the application to render
-        setAppIsReady(true);
-        // await createAnonymous("App");
-        await SplashScreen.hideAsync();
-      }
-    }
-
-    prepare();
-  }, []);
-
-
-
-
-
-  if (!appIsReady) {
-    return null; // Splash screen will remain visible during this time
-  }
-
-
-
-
-
-
-
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Onboarding1">

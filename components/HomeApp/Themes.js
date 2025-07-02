@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  ScrollView,
   ImageBackground,
   Dimensions,
   FlatList,
@@ -491,14 +490,14 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
   const [activeFilter, setActiveFilter] = useState('all');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [focusedFeature, setFocusedFeature] = useState('');
-  
+
   // Initialize themes
   useEffect(() => {
     const colorThemes = generateColorThemes();
     const imageThemes = generateImageThemes();
     setThemes([...colorThemes, ...imageThemes]);
   }, []);
-  
+
   // Reset selected theme when modal opens
   useEffect(() => {
     if (visible) {
@@ -506,7 +505,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
       setThemeChanged(false);
     }
   }, [visible, currentTheme]);
-  
+
   // Handle theme selection
   const handleThemeSelect = (theme) => {
     // If theme is premium and user is not premium, show premium modal
@@ -515,17 +514,17 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
       setShowPremiumModal(true);
       return;
     }
-    
+
     setSelectedTheme(theme);
     setThemeChanged(true);
   };
-  
+
   // Apply theme change
   const applyThemeChange = () => {
     onThemeChange(selectedTheme);
     onClose();
   };
-  
+
   // Filter themes based on active filter
   const getFilteredThemes = () => {
     switch (activeFilter) {
@@ -558,16 +557,21 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
         return themes;
     }
   };
-  
+
   // Render theme item
-  const renderThemeItem = ({ item }) => {
+  const renderThemeItem = ({ item, index }) => {
     const isSelected = selectedTheme && selectedTheme.id === item.id;
-    
+
     return (
       <TouchableOpacity
         style={[
           styles.themeItem,
-          isSelected && styles.selectedThemeItem
+          isSelected && styles.selectedThemeItem,
+          // Handle spacing for 3 columns
+          {
+            marginLeft: index % 3 === 0 ? 0 : 5,
+            marginRight: index % 3 === 2 ? 0 : 5,
+          }
         ]}
         onPress={() => handleThemeSelect(item)}
       >
@@ -577,7 +581,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             <Text style={[styles.previewText, { color: item.value === '#121212' ? '#FFFFFF' : '#000000' }]}>Aa</Text>
           </View>
         )}
-        
+
         {item.type === 'gradient' && (
           <LinearGradient
             colors={item.value}
@@ -586,7 +590,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             <Text style={styles.previewText}>Aa</Text>
           </LinearGradient>
         )}
-        
+
         {item.type === 'image' && (
           <ImageBackground
             source={{ uri: item.value }}
@@ -598,21 +602,21 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             </View>
           </ImageBackground>
         )}
-        
+
         {/* Premium lock icon */}
         {item.isPremium && !isPremiumUser && (
           <View style={styles.lockIconContainer}>
             <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
           </View>
         )}
-        
+
         {/* Selected checkmark */}
         {isSelected && (
           <View style={styles.checkmarkContainer}>
             <Ionicons name="checkmark" size={16} color="#222" />
           </View>
         )}
-        
+
         {/* Edit button for selected theme (only shown for the first theme as an example) */}
         {isSelected && item.id === 'color-1' && (
           <TouchableOpacity style={styles.editButton}>
@@ -622,10 +626,10 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
       </TouchableOpacity>
     );
   };
-  
+
   // Render theme mix item
   const renderThemeMixItem = ({ item }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.themeMixItem,
         activeFilter === item.filter && styles.activeThemeMixItem
@@ -650,6 +654,35 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
     </TouchableOpacity>
   );
 
+  // Create header component for the main FlatList
+  const ListHeaderComponent = () => (
+    <View>
+      {/* Theme mixes section */}
+      <Text style={styles.sectionTitle}>Categories</Text>
+
+      <FlatList
+        data={themeMixes}
+        renderItem={renderThemeMixItem}
+        keyExtractor={item => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.themeMixesContainer}
+      />
+
+      {/* Filtered themes section header */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          {themeMixes.find(mix => mix.filter === activeFilter)?.name || 'For you'}
+        </Text>
+        {activeFilter !== 'all' && (
+          <TouchableOpacity onPress={() => setActiveFilter('all')}>
+            <Text style={styles.viewAllText}>View all</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -659,7 +692,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
     >
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#1A2235" />
-        
+
         {/* Header - Repositioned title next to X icon */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
@@ -668,8 +701,8 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Themes</Text>
           </View>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.unlockButton}
             onPress={() => {
               setFocusedFeature('All Themes');
@@ -679,53 +712,31 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             <Text style={styles.unlockButtonText}>Unlock all</Text>
           </TouchableOpacity>
         </View>
-        
-        <ScrollView style={styles.content}>
-          {/* Theme mixes section - now the primary filtering mechanism */}
-          <Text style={styles.sectionTitle}>Categories</Text>
-          
-          <FlatList
-            data={themeMixes}
-            renderItem={renderThemeMixItem}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.themeMixesContainer}
-          />
-          
-          {/* Filtered themes section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {themeMixes.find(mix => mix.filter === activeFilter)?.name || 'For you'}
-            </Text>
-            {activeFilter !== 'all' && (
-              <TouchableOpacity onPress={() => setActiveFilter('all')}>
-                <Text style={styles.viewAllText}>View all</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          <FlatList
-            data={getFilteredThemes()}
-            renderItem={renderThemeItem}
-            keyExtractor={item => item.id}
-            numColumns={3}
-            contentContainerStyle={styles.themesGrid}
-          />
-        </ScrollView>
-        
+
+        {/* Main FlatList with header - this replaces the ScrollView */}
+        <FlatList
+          data={getFilteredThemes()}
+          renderItem={renderThemeItem}
+          keyExtractor={item => item.id}
+          numColumns={3}
+          ListHeaderComponent={ListHeaderComponent}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          key={activeFilter} // Force re-render when filter changes
+        />
+
         {/* Apply theme button - only show if theme has changed */}
         {themeChanged && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.applyButton}
             onPress={applyThemeChange}
           >
             <Text style={styles.applyButtonText}>Apply Theme</Text>
           </TouchableOpacity>
         )}
-        
+
         {/* Premium Modal */}
-        <PremiumModal 
+        <PremiumModal
           visible={showPremiumModal}
           onClose={() => setShowPremiumModal(false)}
           focusedFeature={focusedFeature}
@@ -770,8 +781,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   content: {
-    flex: 1,
     paddingHorizontal: 15,
+    paddingBottom: 100,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -828,9 +839,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
-  },
-  themesGrid: {
-    paddingBottom: 100,
   },
   themeItem: {
     width: ITEM_WIDTH,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,7 @@ import {
   SafeAreaView,
   StatusBar,
   Animated,
-  Easing,
-  ActivityIndicator
+  Easing
 } from 'react-native';
 import Svg, {
   Rect,
@@ -21,9 +20,124 @@ import Svg, {
 } from 'react-native-svg';
 import { useStore } from '../../store/useStore';
 import { createAnonymous } from '../../functions/create-anonymous';
-import AdManager from '../../services/AdManager';
-import ToastManager, { Toast } from 'toastify-react-native';
 
+
+export default function App({ navigation }) {
+
+  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+  const getOnboarded = useStore((state) => state.onboarded);
+  const userId = useStore((state) => state.userId);
+  const [userCreatedState, setUserCreatedState] = React.useState(false);
+
+  const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
+
+  let attempts = 0;
+
+
+  const tryCreateAnonymous = async () => {
+    if (userId) {
+      setUserCreatedState(true);
+      console.log('User already exists, skipping creation...userId:',userId);
+      return true;
+    }
+
+    if (!userId) {
+      console.log('Creating anonymous user... Attempt:', attempts + 1);
+      const userCreated = await createAnonymous();
+      if (userCreated) {
+        console.log('Anonymous user created successfully');
+        return true;
+      } else if (attempts < 1) {
+        attempts += 1;
+        await tryCreateAnonymous();
+      } else {
+        console.error('Failed to create anonymous user after 2 attempts');
+        return false;
+      }
+    }
+  };
+
+
+  useEffect(() => {
+    const handleUserCreation = async () => {
+     const rep= await tryCreateAnonymous();
+
+
+      if (getOnboarded  && rep) {
+        console.log('User already onboarded, navigating to PremiumOnboarding');
+        navigation.navigate("PremiumOnbording");
+      }
+
+
+    };
+
+    handleUserCreation();
+  }, [getOnboarded, userId, navigation, setUserCreatedState]);
+
+
+  const onCLickContinue = () => {
+    console.log(getOnboarded)
+    setOnboardedTrue();
+    navigation.navigate(initialRouteName);
+  }
+
+  // Animation value for the sun
+  const sunAnimValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    // Sun hovering animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(sunAnimValue, {
+          toValue: 1,
+          duration: 3000,
+          easing: Easing.sin,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sunAnimValue, {
+          toValue: 0,
+          duration: 3000,
+          easing: Easing.sin,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  // Animation interpolation for sun movement
+  const sunTranslateY = sunAnimValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -15], // Sun moves up 15 pixels and back down
+  });
+
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.content}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Get motivation throughout the day</Text>
+          <Text style={styles.subtitle}>
+            Inspiration to think positively, stay consistent, and focus on your growth
+          </Text>
+        </View>
+
+        <View style={styles.illustrationContainer}>
+          {/* Window with animated sun */}
+          <View style={styles.windowContainer}>
+            <WindowWithSun sunTranslateY={sunTranslateY} />
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onCLickContinue}>
+          <Text style={styles.buttonText}>Continue</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+// Window with Sun SVG Component
 const WindowWithSun = ({ sunTranslateY }) => {
   const translateY = sunTranslateY.__getValue ? sunTranslateY.__getValue() : 0;
 
@@ -36,8 +150,10 @@ const WindowWithSun = ({ sunTranslateY }) => {
         </LinearGradient>
       </Defs>
 
+      {/* Window background (sky) */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="url(#skyGradient)" />
 
+      {/* Sun with rays */}
       <Circle
         cx="140"
         cy={140 + translateY}
@@ -45,6 +161,7 @@ const WindowWithSun = ({ sunTranslateY }) => {
         fill="#FFD700"
       />
 
+      {/* Sun rays */}
       {[...Array(12)].map((_, i) => {
         const angle = (i * 30) * Math.PI / 180;
         const innerRadius = 55;
@@ -68,9 +185,14 @@ const WindowWithSun = ({ sunTranslateY }) => {
         );
       })}
 
+      {/* Window frame */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="none" stroke="#4A5568" strokeWidth="10" />
+
+      {/* Window panes */}
       <Line x1="20" y1="160" x2="260" y2="160" stroke="#4A5568" strokeWidth="6" />
       <Line x1="140" y1="20" x2="140" y2="300" stroke="#4A5568" strokeWidth="6" />
+
+      {/* Window sill */}
       <Rect x="10" y="300" width="260" height="15" rx="2" fill="#4A5568" />
     </Svg>
   );
@@ -91,16 +213,16 @@ export default function App({ navigation }) {
       try {
         // 1. Create anonymous user if needed
         await createAnonymous("OnboardingScreen");
-        
+
         if (!isMounted) return;
 
         // 2. Check onboarding status
         if (getOnboarded) {
           console.log('User already onboarded, redirecting...');
           setOnboardedTrue();
-          
+
           Toast.info('Welcome back!');
-          
+
           // Show rewarded ad in background
           AdManager.showRewarded((reward) => {
             console.log(`Earned ${reward.amount} ${reward.type}`);
