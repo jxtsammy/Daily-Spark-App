@@ -25,63 +25,9 @@ import { useStore } from "../../store/useStore";
 import { CheckHasFreeTrial } from "../../functions/check-has-free-trial";
 import { CheckActivePaidSubscriptions } from "../../functions/check-active-paid-subscription";
 import { getMultipleQuotes, saveQuote } from "../../functions/quotes";
-
+import ToastManager, { Toast } from "toastify-react-native";
 const { width, height } = Dimensions.get("window");
 
-// Sample quotes data (fallback)
-const quotesA = [
-  { 
-    id: "default-1", 
-    text: "I deserve to have joy in my life.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#EAE6DF" 
-  },
-  { 
-    id: "default-2", 
-    text: "I am worthy of love and respect.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#E5E1D8" 
-  },
-  { 
-    id: "default-3", 
-    text: "My potential is limitless.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#D8D3C8" 
-  },
-  { 
-    id: "default-4", 
-    text: "I embrace challenges as opportunities.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#E8E4DD" 
-  },
-  { 
-    id: "default-5", 
-    text: "I am enough just as I am.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#F0EDE6" 
-  },
-  { 
-    id: "default-6", 
-    text: "Today I choose happiness.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#E2DED7" 
-  },
-  { 
-    id: "default-7", 
-    text: "I am in control of my thoughts and feelings.",
-    author: "Self",
-    source: "default",
-    backgroundColor: "#EBE7E0" 
-  }
-];
-
-// Default theme
 const defaultTheme = {
   id: "color-1",
   name: "Light Cream",
@@ -91,7 +37,6 @@ const defaultTheme = {
   isGradient: false,
 };
 
-// Helper function to determine if a color is dark
 const isDarkColor = (colorValue) => {
   try {
     if (typeof colorValue === "string") {
@@ -106,10 +51,9 @@ const isDarkColor = (colorValue) => {
   }
 };
 
-// Helper function for background colors
 const getRandomBackgroundColor = () => {
   const colors = [
-    "#EAE6DF", "#E5E1D8", "#D8D3C8", 
+    "#EAE6DF", "#E5E1D8", "#D8D3C8",
     "#E8E4DD", "#F0EDE6", "#E2DED7", "#EBE7E0"
   ];
   return colors[Math.floor(Math.random() * colors.length)];
@@ -125,107 +69,84 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [currentTheme, setCurrentTheme] = useState(defaultTheme);
   const [isDark, setIsDark] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [quotes, setQuotes] = useState(quotesA); // Initialize with default quotes
-  const [isLoading, setIsLoading] = useState(false);
+  const [quotes, setQuotes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasMoreQuotes, setHasMoreQuotes] = useState(true);
-  const [isPremium, setIsPremium] = useState(isPremiumUser);
 
-  // Animation values
   const swipeAnim = useRef(new Animated.Value(0)).current;
   const nextQuoteAnim = useRef(new Animated.Value(height)).current;
   const prevQuoteAnim = useRef(new Animated.Value(-height)).current;
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
 
-  // Get current quote
-  const currentQuote = quotes[currentQuoteIndex];
-  const nextQuote = quotes[(currentQuoteIndex + 1) % quotes.length];
-  const prevQuote = quotes[currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1];
+  const currentQuote = quotes[currentQuoteIndex] || { text: "", author: "", source: "" };
+  const nextQuote = quotes[(currentQuoteIndex + 1) % quotes.length] || { text: "", author: "", source: "" };
+  const prevQuote = quotes[currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1] || { text: "", author: "", source: "" };
 
-  // Calculate progress
   const progress = likedQuotes.length;
   const maxProgress = 5;
   const progressWidth = (progress / maxProgress) * 120;
 
-  // Fetch quotes from backend
   const fetchQuotes = async () => {
-    if (isLoading) return;
-    
+    console.log("fetchQuotes: Starting fetch...");
+    setQuotes([]);
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      const response = await getMultipleQuotes(10); // Get 10 quotes
-      
+      const response = await getMultipleQuotes(10);
       if (response && Array.isArray(response)) {
         if (response.length === 0) {
           setHasMoreQuotes(false);
+          Toast.show("No more quotes available.", "warning");
           return;
         }
-        
-        // Map API response to our expected format
         const mappedQuotes = response.map((quote, index) => ({
-          id: `${quote.source}-${index}-${Date.now()}`, // Create unique ID
+          id: `${quote.source}-${index}-${Date.now()}`,
           text: quote.text,
           author: quote.author || "Unknown",
           source: quote.source || "unknown",
           backgroundColor: getRandomBackgroundColor()
         }));
-
+        console.log("fetchQuotes: Fetched quotes:", mappedQuotes);
         setQuotes(mappedQuotes);
-        setCurrentQuoteIndex(0);
+      } else {
+        console.log("fetchQuotes: Response is not an array or is falsy.");
+        Toast.show("Failed to load quotes.", "error");
       }
     } catch (error) {
-      console.error("Error fetching quotes:", error);
+      console.error("fetchQuotes: Error fetching quotes:", error);
+      Toast.show("Error fetching quotes.", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check when we're near the end of quotes
   useEffect(() => {
     if (currentQuoteIndex >= quotes.length - 3 && hasMoreQuotes && !isLoading) {
-      if(isPremium){
-        fetchQuotes(); 
-      }
+      fetchQuotes();
     }
   }, [currentQuoteIndex, quotes.length]);
 
-  // Check user status and fetch initial quotes if needed
   useEffect(() => {
     let isMounted = true;
-
     const checkUserAndFetch = async () => {
       const { userId } = useStore.getState();
-      
       if (!userId) {
-        console.log("No user ID, navigating to onboarding");
         navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
         return;
       }
-
-      // Check free trial status
       const hasActiveTrial = await CheckHasFreeTrial();
-      
       if (!isMounted) return;
-
-      if (hasActiveTrial) {
-        navigation.navigate('Home');
-      } else {
-        // If no trial, check subscriptions
-        const res = await CheckActivePaidSubscriptions();
-        setIsPremium(res.payload?.subscription?.is_free === false)
-        
-        if (res.payload?.subscription?.is_free === false) {
-          fetchQuotes();
-        }
+      if (!hasActiveTrial) {
+        navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+        return;
       }
+      await fetchQuotes();
     };
-
     checkUserAndFetch();
-
     return () => { isMounted = false; };
-  }, [navigation,setIsPremium]);
+  }, [navigation]);
 
-  // Determine text and icon colors based on background
   useEffect(() => {
     if (currentTheme.type === "color" && !currentTheme.isGradient) {
       setIsDark(isDarkColor(currentTheme.value));
@@ -239,9 +160,8 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
   // Get text color based on background darkness
   const getTextColor = () => (isDark ? "#FFFFFF" : "#000000");
-
-  // Get background color for UI elements
   const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)");
+  const getHeartIconName = () => (currentQuoteLiked ? "heart" : "heart-outline");
 
   // Pan responder for swipe gestures
   const panResponder = useRef(
@@ -257,22 +177,19 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       onPanResponderMove: (_, gestureState) => {
         const { dy } = gestureState;
         swipeAnim.setValue(dy);
-        
+
         if (dy < 0) {
-          // Swiping up - show next quote
           nextQuoteAnim.setValue(height + dy);
         } else if (dy > 0) {
-          // Swiping down - show previous quote
           prevQuoteAnim.setValue(-height + dy);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
         const { dy, vy } = gestureState;
-        const threshold = height * 0.1; // 10% of screen height
+        const threshold = height * 0.1;
         const velocityThreshold = 0.5;
 
         if (dy < -threshold || vy < -velocityThreshold) {
-          // Swipe up - next quote
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: -height,
@@ -293,7 +210,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             setIsAnimating(false);
           });
         } else if (dy > threshold || vy > velocityThreshold) {
-          // Swipe down - previous quote
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: height,
@@ -314,7 +230,6 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             setIsAnimating(false);
           });
         } else {
-          // Return to center
           Animated.parallel([
             Animated.spring(swipeAnim, {
               toValue: 0,
@@ -341,38 +256,23 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
   // Handle like action
   const handleLike = async () => {
+    if (!currentQuote.id) return;
+
     if (currentQuoteLiked) {
-      setLikedQuotes((prev) => {
-        const index = prev.indexOf(currentQuote.id);
-        if (index !== -1) {
-          const newLiked = [...prev];
-          newLiked.splice(index, 1);
-          return newLiked;
-        }
-        return prev;
-      });
+      setLikedQuotes((prev) => prev.filter(id => id !== currentQuote.id));
       setCurrentQuoteLiked(false);
     } else if (likedQuotes.length < maxProgress) {
-      setLikedQuotes((prev) => {
-        if (!prev.includes(currentQuote.id)) {
-          return [...prev, currentQuote.id];
-        }
-        return prev;
-      });
+      setLikedQuotes((prev) => [...prev, currentQuote.id]);
       setCurrentQuoteLiked(true);
 
-      // Save the quote to backend if it's not from the default quotes
-      if (currentQuote.source !== "default") {
-        try {
-          await saveQuote({
-            quoteId: currentQuote.id,
-            text: currentQuote.text,
-            author: currentQuote.author,
-            source: currentQuote.source
-          });
-        } catch (error) {
-          console.error("Error saving quote:", error);
-        }
+      try {
+        await saveQuote({
+          text: currentQuote.text,
+          author: currentQuote.author,
+          source: currentQuote.source
+        });
+      } catch (error) {
+        console.error("Error saving quote:", error);
       }
 
       Animated.sequence([
@@ -410,11 +310,11 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   // Handle share action
   const handleShare = async () => {
     try {
-      let shareMessage = currentQuote.text;
+      let shareMessage = currentQuote.text || "";
       if (currentQuote.author && currentQuote.author !== "Unknown") {
         shareMessage += `\n\n— ${currentQuote.author}`;
       }
-      
+
       await Share.share({
         message: shareMessage,
         title: "Daily Inspiration",
@@ -449,7 +349,35 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   // Get the current text color
   const textColor = getTextColor();
   const elementBgColor = getElementBgColor();
-  const getHeartIconName = () => (currentQuoteLiked ? "heart" : "heart-outline");
+
+  // Show loading state
+  // if (isLoading && quotes.length === 0) {
+  //   return (
+  //     <SafeAreaView style={styles.safeArea}>
+  //       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+  //         <ActivityIndicator size="large" color={textColor} />
+  //       </View>
+  //     </SafeAreaView>
+  //   );
+  // }
+
+  // Show empty state
+  if (quotes.length === 0 && !isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ToastManager />
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ color: textColor }}>No quotes available</Text>
+          <TouchableOpacity
+            onPress={fetchQuotes}
+            style={[styles.retryButton, { backgroundColor: elementBgColor }]}
+          >
+            <Text style={{ color: textColor }}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -459,7 +387,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       {/* Content */}
       <View style={styles.safeArea}>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-
+        <ToastManager />
         {/* Progress bar */}
         <View style={styles.header}>
           <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
@@ -495,12 +423,25 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
         {/* Quote container */}
         <View style={styles.quoteContainer}>
+          {
+            isLoading && quotes.length === 0 ?
+              (
+                <SafeAreaView style={styles.safeArea}>
+                  <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color={textColor} />
+                    <Text style={{ color: textColor, marginTop: 10 }}>Loading quotes...</Text>
+                  </View>
+                </SafeAreaView>
+              ) : ""
+          }
+
+
           <View style={styles.swipeArea} {...panResponder.panHandlers}>
             {/* Previous quote */}
             <Animated.View
               style={[styles.quoteWrapper, styles.prevQuote, { transform: [{ translateY: prevQuoteAnim }] }]}
             >
-              <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text}</Text>
+              <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text || ""}</Text>
               {prevQuote.author && prevQuote.author !== "Unknown" && (
                 <Text style={[styles.authorText, { color: textColor }]}>— {prevQuote.author}</Text>
               )}
@@ -508,7 +449,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
             {/* Current quote */}
             <Animated.View style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}>
-              <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text}</Text>
+              <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text || ""}</Text>
               {currentQuote.author && currentQuote.author !== "Unknown" && (
                 <Text style={[styles.authorText, { color: textColor }]}>— {currentQuote.author}</Text>
               )}
@@ -518,7 +459,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
             <Animated.View
               style={[styles.quoteWrapper, styles.nextQuote, { transform: [{ translateY: nextQuoteAnim }] }]}
             >
-              <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text}</Text>
+              <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text || ""}</Text>
               {nextQuote.author && nextQuote.author !== "Unknown" && (
                 <Text style={[styles.authorText, { color: textColor }]}>— {nextQuote.author}</Text>
               )}
@@ -527,11 +468,12 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         </View>
 
         {/* Loading indicator */}
-        {isLoading && (
+        {/* {isLoading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="small" color={textColor} />
           </View>
-        )}
+        )} */}
+
 
         {/* Heart animation overlay */}
         <Animated.View
@@ -749,5 +691,10 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
+  },
+  retryButton: {
+    padding: 12,
+    borderRadius: 20,
+    marginTop: 20,
   },
 });

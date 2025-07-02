@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,13 +24,8 @@ const ManageSubscriptionScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
 
-  const openPremiumModal = () => {
-    setModalVisible(true);
-  };
-
-  const closePremiumModal = () => {
-    setModalVisible(false);
-  };
+  const openPremiumModal = () => setModalVisible(true);
+  const closePremiumModal = () => setModalVisible(false);
 
   const handleCancelSubscription = async (planId) => {
     if (!planId) {
@@ -48,7 +44,7 @@ const ManageSubscriptionScreen = ({ navigation }) => {
         Toast.error(res?.message || 'Failed to cancel subscription');
       }
     } catch (error) {
-      console.error("Error cancelling subscription:", error);
+      console.error("Cancel error:", error);
       Toast.error('An error occurred while cancelling subscription');
     } finally {
       setCancelling(false);
@@ -59,13 +55,9 @@ const ManageSubscriptionScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const res = await CheckActivePaidSubscriptions();
-      if (res?.status === "success" && res.payload?.plan) {
-        setPlan(res.payload);
-      } else {
-        setPlan(null);
-      }
+      setPlan(res?.status === "success" && res.payload?.plan ? res.payload : null);
     } catch (error) {
-      console.error("Error checking subscription:", error);
+      console.error("Check error:", error);
       Toast.error('Failed to load subscription details');
       setPlan(null);
     } finally {
@@ -84,7 +76,7 @@ const ManageSubscriptionScreen = ({ navigation }) => {
         Toast.info('No active subscription found to restore');
       }
     } catch (error) {
-      console.error("Error restoring purchase:", error);
+      console.error("Restore error:", error);
       Toast.error('Failed to restore purchase');
     } finally {
       setLoading(false);
@@ -96,170 +88,137 @@ const ManageSubscriptionScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-  if (loading) {
-    return (
-      <ImageBackground
-        source={require('../../../assets/smile.jpg')}
-        style={styles.backgroundImage}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={['rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.4)']}
-          style={styles.gradientOverlay}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-        >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-            >
-              <ChevronLeft color="#fff" size={24} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Manage subscription</Text>
-          </View>
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <ChevronLeft color="#fff" size={24} />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Manage subscription</Text>
+    </View>
+  );
 
-          <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.loadingText}>Loading subscription details...</Text>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
-      </ImageBackground>
-    );
-  }
+  const renderLoading = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#FFFFFF" />
+      <Text style={styles.loadingText}>Loading subscription details...</Text>
+    </View>
+  );
 
   return (
-    <ImageBackground
-      source={require('../../../assets/smile.jpg')}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
+    <ImageBackground source={require('../../../assets/smile.jpg')} style={styles.backgroundImage} resizeMode="cover">
       <LinearGradient
         colors={['rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.4)']}
         style={styles.gradientOverlay}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       >
-        <ToastManager />
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+          <ToastManager />
 
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-            >
-              <ChevronLeft color="#fff" size={24} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Manage subscription</Text>
-          </View>
+          {renderHeader()}
 
-          <View style={styles.content}>
-            <Text style={styles.subscriptionInfo}>
-              {plan?.plan 
-                ? 'Manage your premium subscription and access all features.'
-                : 'Upgrade to Premium to access our full library of content and features.'}
-            </Text>
-          </View>
-
-          {plan?.plan ? (
-            <View style={styles.planContainer}>
-              <Text style={styles.planName}>{plan.plan.name}</Text>
-              <Text style={styles.planDescription}>{plan.plan.description}</Text>
-
-              <View style={styles.datesContainer}>
-                <View style={styles.dateItem}>
-                  <Text style={styles.dateLabel}>Started</Text>
-                  <Text style={styles.dateValue}>
-                    {new Date(plan.subscription.start_date._seconds * 1000).toLocaleDateString()}
-                  </Text>
-                </View>
-                <View style={styles.dateItem}>
-                  <Text style={styles.dateLabel}>Ends</Text>
-                  <Text style={styles.dateValue}>
-                    {new Date(plan.subscription.end_date._seconds * 1000).toLocaleDateString()}
-                  </Text>
-                </View>
-              </View>
-
-              <Text style={styles.planPrice}>
-                {plan.plan.currency} {plan.plan.price} / {plan.plan.duration_days} days
-              </Text>
-
-              <View style={styles.featuresContainer}>
-                {Array.isArray(plan.plan.features) && plan.plan.features.map((feature, idx) => (
-                  <Text key={idx} style={styles.featureItem}>
-                    • {feature}
-                  </Text>
-                ))}
-              </View>
-
-              {plan.subscription.status === 'active' && (
-                <TouchableOpacity
-                  style={[styles.cancelButton, cancelling && styles.disabledButton]}
-                  activeOpacity={0.8}
-                  onPress={() => handleCancelSubscription(plan.subscription.id)}
-                  disabled={cancelling}
-                >
-                  {cancelling ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.cancelButtonText}>Cancel Subscription</Text>
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
+          {loading ? (
+            renderLoading()
           ) : (
-            <>
-              <View style={styles.noPlanContainer}>
-                <Text style={styles.noPlanTitle}>No active subscription</Text>
-                <Text style={styles.noPlanText}>
-                  Upgrade to Premium to unlock all features and content
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+              <View style={styles.content}>
+                <Text style={styles.subscriptionInfo}>
+                  {plan?.plan
+                    ? 'Manage your premium subscription and access all features.'
+                    : 'Upgrade to Premium to access our full library of content and features.'}
                 </Text>
               </View>
 
-              <View style={styles.footer}>
-                <TouchableOpacity
-                  onPress={openPremiumModal}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={['#9C6AFF', '#FF7EB3']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.premiumButton}
-                  >
-                    <Text style={styles.premiumButtonText}>Go Premium</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+              {plan?.plan ? (
+                <View style={styles.planContainer}>
+                  <Text style={styles.planName}>{plan.plan.name}</Text>
+                  <Text style={styles.planDescription}>{plan.plan.description}</Text>
 
-                <TouchableOpacity
-                  style={styles.restoreButton}
-                  activeOpacity={0.6}
-                  onPress={handleRestorePurchase}
-                >
-                  <Text style={styles.restoreButtonText}>Restore purchase</Text>
-                </TouchableOpacity>
-              </View>
-            </>
+                  <View style={styles.datesContainer}>
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>Started</Text>
+                      <Text style={styles.dateValue}>
+                        {new Date(plan.subscription.start_date._seconds * 1000).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <View style={styles.dateItem}>
+                      <Text style={styles.dateLabel}>Ends</Text>
+                      <Text style={styles.dateValue}>
+                        {new Date(plan.subscription.end_date._seconds * 1000).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.planPrice}>
+                    {plan.plan.currency} {plan.plan.price} / {plan.plan.duration_days} days
+                  </Text>
+
+                  <View style={styles.featuresContainer}>
+                    {Array.isArray(plan.plan.features) && plan.plan.features.map((feature, idx) => (
+                      <Text key={idx} style={styles.featureItem}>
+                        • {feature}
+                      </Text>
+                    ))}
+                  </View>
+
+                  {plan.subscription.status === 'active' && (
+                    <TouchableOpacity
+                      style={[styles.cancelButton, cancelling && styles.disabledButton]}
+                      activeOpacity={0.8}
+                      onPress={() => handleCancelSubscription(plan.subscription.id)}
+                      disabled={cancelling}
+                    >
+                      {cancelling ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.cancelButtonText}>Cancel Subscription</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <>
+                  <View style={styles.noPlanContainer}>
+                    <Text style={styles.noPlanTitle}>No active subscription</Text>
+                    <Text style={styles.noPlanText}>
+                      Upgrade to Premium to unlock all features and content
+                    </Text>
+                  </View>
+
+                  <View style={styles.footer}>
+                    <TouchableOpacity onPress={openPremiumModal} activeOpacity={0.8}>
+                      <LinearGradient
+                        colors={['#9C6AFF', '#FF7EB3']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.premiumButton}
+                      >
+                        <Text style={styles.premiumButtonText}>Go Premium</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.restoreButton} activeOpacity={0.6} onPress={handleRestorePurchase}>
+                      <Text style={styles.restoreButtonText}>Restore purchase</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
           )}
         </SafeAreaView>
-      </LinearGradient>
 
-      <PremiumModal
-        visible={modalVisible}
-        onClose={closePremiumModal}
-        onSubscriptionSuccess={checkSubscription}
-      />
+        <PremiumModal
+          visible={modalVisible}
+          onClose={closePremiumModal}
+          onSubscriptionSuccess={checkSubscription}
+        />
+      </LinearGradient>
     </ImageBackground>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   backgroundImage: {

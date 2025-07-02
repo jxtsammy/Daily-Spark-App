@@ -130,26 +130,26 @@ export default function App({ navigation }) {
                 "Content preferences",
                 "ContentPrefrencesSettings"
               )}
-              {renderSettingItem(
+              {/* {renderSettingItem(
                 <User stroke="#fff" width={24} height={24} />,
                 "Gender identity",
                 "GenderIdentitySettings"
-              )}
-              {renderSettingItem(
+              )} */}
+              {/* {renderSettingItem(
                 <UserCircle stroke="#fff" width={24} height={24} />,
                 "Name",
                 "EditName"
-              )}
-              {renderSettingItem(
+              )} */}
+              {/* {renderSettingItem(
                 <Globe stroke="#fff" width={24} height={24} />,
                 "Language",
                 "LanguageSettings"
-              )}
-              {renderSettingItem(
+              )} */}
+              {/* {renderSettingItem(
                 <Flame stroke="#fff" width={24} height={24} />,
                 "Streak",
                 "StreakSettings"
-              )}
+              )} */}
               {renderSettingItem(
                 <Smartphone stroke="#fff" width={24} height={24} />,
                 "About App",

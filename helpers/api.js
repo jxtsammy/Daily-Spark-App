@@ -1,5 +1,8 @@
 import axios from 'axios';
+import { useStore } from '../store/useStore';
 
+
+const {idToken} = useStore.getState();
 // Configure base URL (replace with your API endpoint)
 const api = axios.create({
   baseURL: 'https://daily-spark-be.vercel.app', 
@@ -15,7 +18,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Modify requests before sending (e.g., add auth token)
-    const token = 'YOUR_AUTH_TOKEN'; // Retrieve from AsyncStorage
+    const token = idToken; // Retrieve from AsyncStorage
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

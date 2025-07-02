@@ -27,14 +27,12 @@ import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
-// Get current day and next 6 days
 const getDays = () => {
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const today = new Date();
   const currentDayIndex = today.getDay();
-
-  // Reorder days to start from current day
   const reorderedDays = [];
+
   for (let i = 0; i < 7; i++) {
     const dayIndex = (currentDayIndex + i) % 7;
     reorderedDays.push(days[dayIndex]);
@@ -51,7 +49,6 @@ export default function SettingsModal({ visible, onClose }) {
   const [isClosing, setIsClosing] = useState(false);
   const navigation = useNavigation();
 
-  // Create floating dots
   useEffect(() => {
     const createDots = () => {
       const newDots = [];
@@ -72,10 +69,8 @@ export default function SettingsModal({ visible, onClose }) {
     createDots();
   }, []);
 
-  // Animate modal
   useEffect(() => {
     if (visible && !isClosing) {
-      // Open the modal
       setIsClosing(false);
       Animated.spring(slideAnim, {
         toValue: 0,
@@ -84,9 +79,8 @@ export default function SettingsModal({ visible, onClose }) {
         useNativeDriver: true,
       }).start();
     } else if (!visible || isClosing) {
-      // Close the modal
       Animated.timing(slideAnim, {
-        toValue: height,
+        toValue: height * 0.9,
         duration: 300,
         useNativeDriver: true,
       }).start(() => {
@@ -105,179 +99,182 @@ export default function SettingsModal({ visible, onClose }) {
   if (!visible && !isClosing) return null;
 
   return (
-    <Animated.View
-      style={[
-        styles.modalContainer,
-        {
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}>
-      {/* Floating dots */}
-      {dots.map((dot, index) => (
-        <View
-          key={index}
-          style={[
-            styles.floatingDot,
-            {
-              left: dot.posX,
-              top: dot.posY,
-              width: dot.size,
-              height: dot.size,
-              opacity: dot.opacity,
-            },
-          ]}
-        />
-      ))}
+    <View style={styles.overlay}>
+      <Animated.View
+        style={[
+          styles.modalContainer,
+          { transform: [{ translateY: slideAnim }] },
+        ]}
+      >
+        {dots.map((dot, index) => (
+          <View
+            key={index}
+            style={[
+              styles.floatingDot,
+              {
+                left: dot.posX,
+                top: dot.posY,
+                width: dot.size,
+                height: dot.size,
+                opacity: dot.opacity,
+              },
+            ]}
+          />
+        ))}
 
-      <View style={styles.modalContent}>
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor="transparent"
-          translucent
-        />
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <X size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.title}>Settings</Text>
-        </View>
+        <View style={styles.modalContent}>
+          <StatusBar
+            barStyle="light-content"
+            backgroundColor="transparent"
+            translucent
+          />
 
-        {/* Premium Card */}
-        <TouchableOpacity style={styles.premiumCardContainer}>
-          <ImageBackground
-            source={require('../../assets/background.jpg')} // Placeholder - replace with your image
-            style={styles.premiumCardBackground}
-            imageStyle={styles.premiumCardImage}>
-            <LinearGradient
-              colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.2)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.premiumCardOverlay}>
-              <View style={styles.premiumCardContent}>
-                <View>
-                  <Text style={styles.premiumCardTitle}>
-                    Try Motivation Premium
-                  </Text>
-                  <Text style={styles.premiumCardDescription}>
-                    Access all categories, quotes, themes, and remove ads!
-                  </Text>
-                </View>
-                <View style={styles.phoneIconContainer}>
-                  <Smartphone size={40} color="white" />
-                </View>
-              </View>
-            </LinearGradient>
-          </ImageBackground>
-        </TouchableOpacity>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <X size={24} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.title}>Settings</Text>
+          </View>
 
-        {/* Firestreak */}
-        <View style={styles.firestreakContainer}>
-          <View style={styles.firestreakContent}>
-            <View style={styles.fireIcon}>
+          {/* Premium Card */}
+          <TouchableOpacity style={styles.premiumCardContainer}>
+            <ImageBackground
+              source={require('../../assets/background.jpg')}
+              style={styles.premiumCardBackground}
+              imageStyle={styles.premiumCardImage}>
               <LinearGradient
-                colors={['#A78BFA', '#EC4899']}
-                style={styles.fireGradient}
+                colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.2)']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}>
-                <Flame size={34} color="white" />
-              </LinearGradient>
-            </View>
-
-            <View style={styles.daysContainer}>
-              {days.map((day, index) => (
-                <View key={index} style={styles.dayColumn}>
-                  <Text style={styles.dayText}>{day}</Text>
-                  <View
-                    style={[
-                      styles.dayCircle,
-                      index === 0 && styles.activeDayCircle,
-                    ]}>
-                    {index === 0 && <Check size={16} color="white" />}
+                end={{ x: 1, y: 0 }}
+                style={styles.premiumCardOverlay}>
+                <View style={styles.premiumCardContent}>
+                  <View>
+                    <Text style={styles.premiumCardTitle}>
+                      Try Motivation Premium
+                    </Text>
+                    <Text style={styles.premiumCardDescription}>
+                      Access all categories, quotes, themes, and remove ads!
+                    </Text>
+                  </View>
+                  <View style={styles.phoneIconContainer}>
+                    <Smartphone size={40} color="white" />
                   </View>
                 </View>
-              ))}
+              </LinearGradient>
+            </ImageBackground>
+          </TouchableOpacity>
+
+          {/* Firestreak */}
+          {/* <View style={styles.firestreakContainer}>
+            <View style={styles.firestreakContent}>
+              <View style={styles.fireIcon}>
+                <LinearGradient
+                  colors={['#A78BFA', '#EC4899']}
+                  style={styles.fireGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}>
+                  <Flame size={34} color="white" />
+                </LinearGradient>
+              </View>
+
+              <View style={styles.daysContainer}>
+                {days.map((day, index) => (
+                  <View key={index} style={styles.dayColumn}>
+                    <Text style={styles.dayText}>{day}</Text>
+                    <View
+                      style={[
+                        styles.dayCircle,
+                        index === 0 && styles.activeDayCircle,
+                      ]}>
+                      {index === 0 && <Check size={16} color="white" />}
+                    </View>
+                  </View>
+                ))}
+              </View>
             </View>
+          </View> */}
+
+          {/* Settings */}
+          {/* <Text style={styles.sectionTitle}>SETTINGS</Text> */}
+          <View style={styles.settingsContainer}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('GeneralSettings')}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIconContainer}>
+                  <Settings size={20} color="white" />
+                </View>
+                <Text style={styles.settingText}>General</Text>
+              </View>
+              <ChevronRight size={20} color="#A0AEC0" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('Topics')}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIconContainer}>
+                  <CheckCircle size={20} color="white" />
+                </View>
+                <Text style={styles.settingText}>Topics you follow</Text>
+              </View>
+              <ChevronRight size={20} color="#A0AEC0" />
+            </TouchableOpacity>
+{/* 
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('Reminders')}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIconContainer}>
+                  <Bell size={20} color="white" />
+                </View>
+                <Text style={styles.settingText}>Reminders</Text>
+              </View>
+              <ChevronRight size={20} color="#A0AEC0" />
+            </TouchableOpacity> */}
+
+            {/* <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('Widgets')}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIconContainer}>
+                  <LayoutGrid size={20} color="white" />
+                </View>
+                <Text style={styles.settingText}>Widgets</Text>
+              </View>
+              <ChevronRight size={20} color="#A0AEC0" />
+            </TouchableOpacity> */}
           </View>
         </View>
-
-        {/* Settings */}
-        <Text style={styles.sectionTitle}>SETTINGS</Text>
-
-        <View style={styles.settingsContainer}>
-          {/* General */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => navigation.navigate('GeneralSettings')}>
-            <View style={styles.settingLeft}>
-              <View style={styles.settingIconContainer}>
-                <Settings size={20} color="white" />
-              </View>
-              <Text style={styles.settingText}>General</Text>
-            </View>
-            <ChevronRight size={20} color="#A0AEC0" />
-          </TouchableOpacity>
-
-          {/* Topics you follow */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => navigation.navigate('Topics')}>
-            <View style={styles.settingLeft}>
-              <View style={styles.settingIconContainer}>
-                <CheckCircle size={20} color="white" />
-              </View>
-              <Text style={styles.settingText}>Topics you follow</Text>
-            </View>
-            <ChevronRight size={20} color="#A0AEC0" />
-          </TouchableOpacity>
-
-          {/* Reminders */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => navigation.navigate('Reminders')}>
-            <View style={styles.settingLeft}>
-              <View style={styles.settingIconContainer}>
-                <Bell size={20} color="white" />
-              </View>
-              <Text style={styles.settingText}>Reminders</Text>
-            </View>
-            <ChevronRight size={20} color="#A0AEC0" />
-          </TouchableOpacity>
-
-          {/* Widgets */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => navigation.navigate('Widgets')}>
-            <View style={styles.settingLeft}>
-              <View style={styles.settingIconContainer}>
-                <LayoutGrid size={20} color="white" />
-              </View>
-              <Text style={styles.settingText}>Widgets</Text>
-            </View>
-            <ChevronRight size={20} color="#A0AEC0" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Animated.View>
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  overlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 100,
+  },
+  modalContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: height * 0.9,
     backgroundColor: '#000',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    zIndex: 100,
+    overflow: 'hidden',
   },
   modalContent: {
     flex: 1,
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 70 : 20,
+    paddingTop: Platform.OS === 'ios' ? 70 : StatusBar.currentHeight + 20,
   },
   header: {
     flexDirection: 'row',
