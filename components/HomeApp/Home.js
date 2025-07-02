@@ -266,13 +266,35 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       setCurrentQuoteLiked(true);
 
       try {
-        await saveQuote({
+        const { userId } = useStore.getState();
+
+        console.log("handleLike: Saving quote for user:", {
           text: currentQuote.text,
           author: currentQuote.author,
-          source: currentQuote.source
+          userId: userId,
         });
+        if (!userId) {
+          console.log("handleLike: User ID is not available. Cannot save quote.");
+          Toast.error("You need to be logged in to save quotes.");
+          return;
+
+        }
+        const res = await saveQuote({
+          text: currentQuote.text,
+          author: currentQuote.author,
+          userId: userId,
+        });
+
+        if (res && res.success) {
+          Toast.success("Quote saved!");
+        } else if (res && res.message === "Quote already saved by user") {
+          Toast.info("You already saved this quote.");
+        } else {
+          Toast.error("Could not save quote.");
+        }
       } catch (error) {
         console.error("Error saving quote:", error);
+        Toast.error("Error saving quote.");
       }
 
       Animated.sequence([
