@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,37 +12,22 @@ import {
   StatusBar,
   Platform,
   ImageBackground,
-  Alert,
-} from "react-native"
-import Ionicons from "react-native-vector-icons/Ionicons"
-import { Crown } from "lucide-react-native"
-import { LinearGradient } from "expo-linear-gradient"
-import ViewShot from "react-native-view-shot"
-import PremiumModal from "./PremiumModal"
-import SettingsModal from "./SettingScreen"
-import ThemesModal from "./Themes"
-import Color from "color"
+  ActivityIndicator
+} from "react-native";
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { Crown } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import PremiumModal from "./PremiumModal";
+import SettingsModal from "./SettingScreen";
+import ThemesModal from "./Themes";
+import Color from "color";
+import { useStore } from "../../store/useStore";
+import { CheckHasFreeTrial } from "../../functions/check-has-free-trial";
+import { CheckActivePaidSubscriptions } from "../../functions/check-active-paid-subscription";
+import { getMultipleQuotes, saveQuote } from "../../functions/quotes";
+import ToastManager, { Toast } from "toastify-react-native";
+const { width, height } = Dimensions.get("window");
 
-const { width, height } = Dimensions.get("window")
-
-// App Store Links - UPDATE THESE WITH YOUR ACTUAL LINKS
-const APP_STORE_LINKS = {
-  ios: "https://apps.apple.com/app/your-app-id",
-  android: "https://play.google.com/store/apps/details?id=your.package.name",
-}
-
-// Sample quotes data
-const quotes = [
-  { id: 1, text: "I deserve to have joy in my life.", backgroundColor: "#EAE6DF" },
-  { id: 2, text: "I am worthy of love and respect.", backgroundColor: "#E5E1D8" },
-  { id: 3, text: "My potential is limitless.", backgroundColor: "#D8D3C8" },
-  { id: 4, text: "I embrace challenges as opportunities.", backgroundColor: "#E8E4DD" },
-  { id: 5, text: "I am enough just as I am.", backgroundColor: "#F0EDE6" },
-  { id: 6, text: "Today I choose happiness.", backgroundColor: "#E2DED7" },
-  { id: 7, text: "I am in control of my thoughts and feelings.", backgroundColor: "#EBE7E0" },
-]
-
-// Default theme
 const defaultTheme = {
   id: "color-1",
   name: "Light Cream",
@@ -52,413 +35,382 @@ const defaultTheme = {
   value: "#F5F5F0",
   isPremium: false,
   isGradient: false,
-}
+};
 
-// Helper function to determine if a color is dark
 const isDarkColor = (colorValue) => {
   try {
     if (typeof colorValue === "string") {
-      return Color(colorValue).isDark()
+      return Color(colorValue).isDark();
     } else if (Array.isArray(colorValue)) {
-      return Color(colorValue[0]).isDark()
+      return Color(colorValue[0]).isDark();
     }
-    return false
+    return false;
   } catch (error) {
-    console.log("Error determining color brightness:", error)
-    return false
+    console.log("Error determining color brightness:", error);
+    return false;
   }
-}
+};
+
+const getRandomBackgroundColor = () => {
+  const colors = [
+    "#EAE6DF", "#E5E1D8", "#D8D3C8",
+    "#E8E4DD", "#F0EDE6", "#E2DED7", "#EBE7E0"
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
 
 export default function QuotesScreen({ navigation, isPremiumUser = false }) {
-  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0)
-  const [likedQuotes, setLikedQuotes] = useState([])
-  const [currentQuoteLiked, setCurrentQuoteLiked] = useState(false)
-  const [premiumModalVisible, setPremiumModalVisible] = useState(false)
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false)
-  const [themesModalVisible, setThemesModalVisible] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState(defaultTheme)
-  const [isDark, setIsDark] = useState(false)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [isSharing, setIsSharing] = useState(false)
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+  const [likedQuotes, setLikedQuotes] = useState([]);
+  const [currentQuoteLiked, setCurrentQuoteLiked] = useState(false);
+  const [premiumModalVisible, setPremiumModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [themesModalVisible, setThemesModalVisible] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState(defaultTheme);
+  const [isDark, setIsDark] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [quotes, setQuotes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMoreQuotes, setHasMoreQuotes] = useState(true);
 
-  // Animation values
-  const swipeAnim = useRef(new Animated.Value(0)).current
-  const nextQuoteAnim = useRef(new Animated.Value(height)).current
-  const prevQuoteAnim = useRef(new Animated.Value(-height)).current
-  const heartScale = useRef(new Animated.Value(0)).current
-  const heartOpacity = useRef(new Animated.Value(0)).current
+  const swipeAnim = useRef(new Animated.Value(0)).current;
+  const nextQuoteAnim = useRef(new Animated.Value(height)).current;
+  const prevQuoteAnim = useRef(new Animated.Value(-height)).current;
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
 
-  // Ref for capturing the share image
-  const viewShotRef = useRef()
+  const currentQuote = quotes[currentQuoteIndex] || { text: "", author: "", source: "" };
+  const nextQuote = quotes[(currentQuoteIndex + 1) % quotes.length] || { text: "", author: "", source: "" };
+  const prevQuote = quotes[currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1] || { text: "", author: "", source: "" };
 
-  // Get current quote
-  const currentQuote = quotes[currentQuoteIndex]
-  const nextQuote = quotes[(currentQuoteIndex + 1) % quotes.length]
-  const prevQuote = quotes[currentQuoteIndex === 0 ? quotes.length - 1 : currentQuoteIndex - 1]
+  const progress = likedQuotes.length;
+  const maxProgress = 5;
+  const progressWidth = (progress / maxProgress) * 120;
 
-  // Calculate progress
-  const progress = likedQuotes.length
-  const maxProgress = 5
-  const progressWidth = (progress / maxProgress) * 120
-
-  // Determine text and icon colors based on background
-  useEffect(() => {
-    if (currentTheme.type === "color" && !currentTheme.isGradient) {
-      setIsDark(isDarkColor(currentTheme.value))
-    } else if (currentTheme.type === "gradient") {
-      const isDarkGradient = currentTheme.value.some((color) => isDarkColor(color))
-      setIsDark(isDarkGradient)
-    } else if (currentTheme.type === "image") {
-      setIsDark(true)
-    }
-  }, [currentTheme])
-
-  // Get text color based on background darkness
-  const getTextColor = () => (isDark ? "#FFFFFF" : "#000000")
-
-  // Get background color for UI elements
-  const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)")
-
-  // Get platform-specific app store link
-  const getAppStoreLink = () => {
-    return Platform.OS === "ios" ? APP_STORE_LINKS.ios : APP_STORE_LINKS.android
-  }
-
-  // Create and share image
-  const handleShare = async () => {
-    if (isAnimating || isSharing) return
+  const fetchQuotes = async () => {
+    console.log("fetchQuotes: Starting fetch...");
+    setQuotes([]);
+    setIsLoading(true);
 
     try {
-      setIsSharing(true)
-
-      // First try to capture the image
-      if (viewShotRef.current && viewShotRef.current.capture) {
-        try {
-          const uri = await viewShotRef.current.capture()
-          console.log("Image captured:", uri)
-
-          // Get the appropriate app store link
-          const appStoreLink = getAppStoreLink()
-
-          // Try to share with image
-          const shareOptions = {
-            title: "Daily Inspiration",
-            message: `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`,
-          }
-
-          // Add URL for iOS, different approach for Android
-          if (Platform.OS === 'ios') {
-            shareOptions.url = uri
-          } else {
-            // For Android, we'll share the message and handle image separately
-            shareOptions.message = `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`
-          }
-
-          const result = await Share.share(shareOptions)
-          console.log('Share result:', result)
-
-        } catch (captureError) {
-          console.log("Image capture failed, sharing text only:", captureError)
-          // Fallback to text-only sharing
-          await shareTextOnly()
+      const response = await getMultipleQuotes(10);
+      if (response && Array.isArray(response)) {
+        if (response.length === 0) {
+          setHasMoreQuotes(false);
+          Toast.show("No more quotes available.", "warning");
+          return;
         }
+        const mappedQuotes = response.map((quote, index) => ({
+          id: `${quote.source}-${index}-${Date.now()}`,
+          text: quote.text,
+          author: quote.author || "Unknown",
+          source: quote.source || "unknown",
+          backgroundColor: getRandomBackgroundColor()
+        }));
+        console.log("fetchQuotes: Fetched quotes:", mappedQuotes);
+        setQuotes(mappedQuotes);
       } else {
-        console.log("ViewShot ref not available, sharing text only")
-        await shareTextOnly()
+        console.log("fetchQuotes: Response is not an array or is falsy.");
+        Toast.show("Failed to load quotes.", "error");
       }
-
     } catch (error) {
-      console.log("Share error:", error)
-      Alert.alert("Share Failed", "Unable to share the quote. Please try again.")
+      console.error("fetchQuotes: Error fetching quotes:", error);
+      Toast.show("Error fetching quotes.", "error");
     } finally {
-      setIsSharing(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  // Fallback text-only sharing
-  const shareTextOnly = async () => {
-    const appStoreLink = getAppStoreLink()
-    await Share.share({
-      message: `${currentQuote.text}\n\nDownload the app: ${appStoreLink}`,
-      title: "Daily Inspiration",
-    })
-  }
+  useEffect(() => {
+    if (currentQuoteIndex >= quotes.length - 3 && hasMoreQuotes && !isLoading) {
+      fetchQuotes();
+    }
+  }, [currentQuoteIndex, quotes.length]);
 
-  // Pan responder implementation (keeping existing)
+  useEffect(() => {
+    let isMounted = true;
+    const checkUserAndFetch = async () => {
+      const { userId } = useStore.getState();
+      if (!userId) {
+        navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+        return;
+      }
+      const hasActiveTrial = await CheckHasFreeTrial();
+      if (!isMounted) return;
+      if (!hasActiveTrial) {
+        navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+        return;
+      }
+      await fetchQuotes();
+    };
+    checkUserAndFetch();
+    return () => { isMounted = false; };
+  }, [navigation]);
+
+  useEffect(() => {
+    if (currentTheme.type === "color" && !currentTheme.isGradient) {
+      setIsDark(isDarkColor(currentTheme.value));
+    } else if (currentTheme.type === "gradient") {
+      const isDarkGradient = currentTheme.value.some((color) => isDarkColor(color));
+      setIsDark(isDarkGradient);
+    } else if (currentTheme.type === "image") {
+      setIsDark(true);
+    }
+  }, [currentTheme]);
+
+  // Get text color based on background darkness
+  const getTextColor = () => (isDark ? "#FFFFFF" : "#000000");
+  const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)");
+  const getHeartIconName = () => (currentQuoteLiked ? "heart" : "heart-outline");
+
+  // Pan responder for swipe gestures
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isAnimating && !isSharing,
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return !isAnimating && !isSharing && Math.abs(gestureState.dy) > 10 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx)
+        const { dx, dy } = gestureState;
+        return (Math.abs(dy) > Math.abs(dx)) && Math.abs(dy) > 10;
       },
       onPanResponderGrant: () => {
-        swipeAnim.setValue(0)
-        nextQuoteAnim.setValue(height)
-        prevQuoteAnim.setValue(-height)
+        setIsAnimating(true);
       },
       onPanResponderMove: (_, gestureState) => {
-        if (isAnimating || isSharing) return
+        const { dy } = gestureState;
+        swipeAnim.setValue(dy);
 
-        if (gestureState.dy < 0) {
-          const progress = Math.max(gestureState.dy, -height)
-          swipeAnim.setValue(progress)
-          nextQuoteAnim.setValue(height + progress)
-        } else if (gestureState.dy > 0) {
-          const progress = Math.min(gestureState.dy, height)
-          swipeAnim.setValue(progress)
-          prevQuoteAnim.setValue(-height + progress)
+        if (dy < 0) {
+          nextQuoteAnim.setValue(height + dy);
+        } else if (dy > 0) {
+          prevQuoteAnim.setValue(-height + dy);
         }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (isAnimating || isSharing) return
+        const { dy, vy } = gestureState;
+        const threshold = height * 0.1;
+        const velocityThreshold = 0.5;
 
-        const threshold = height * 0.2
-
-        if (gestureState.dy < -threshold && gestureState.vy < -0.5) {
-          setIsAnimating(true)
+        if (dy < -threshold || vy < -velocityThreshold) {
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: -height,
-              duration: 250,
+              duration: 300,
               useNativeDriver: true,
             }),
             Animated.timing(nextQuoteAnim, {
               toValue: 0,
-              duration: 250,
+              duration: 300,
               useNativeDriver: true,
             }),
           ]).start(() => {
-            setCurrentQuoteIndex((prevIndex) => (prevIndex + 1) % quotes.length)
-            setCurrentQuoteLiked(false)
-            swipeAnim.setValue(0)
-            nextQuoteAnim.setValue(height)
-            prevQuoteAnim.setValue(-height)
-            setIsAnimating(false)
-          })
-        } else if (gestureState.dy > threshold && gestureState.vy > 0.5) {
-          setIsAnimating(true)
+            swipeAnim.setValue(0);
+            nextQuoteAnim.setValue(height);
+            prevQuoteAnim.setValue(-height);
+            setCurrentQuoteIndex((prev) => (prev + 1) % quotes.length);
+            setCurrentQuoteLiked(false);
+            setIsAnimating(false);
+          });
+        } else if (dy > threshold || vy > velocityThreshold) {
           Animated.parallel([
             Animated.timing(swipeAnim, {
               toValue: height,
-              duration: 250,
+              duration: 300,
               useNativeDriver: true,
             }),
             Animated.timing(prevQuoteAnim, {
               toValue: 0,
-              duration: 250,
+              duration: 300,
               useNativeDriver: true,
             }),
           ]).start(() => {
-            setCurrentQuoteIndex((prevIndex) => (prevIndex === 0 ? quotes.length - 1 : prevIndex - 1))
-            setCurrentQuoteLiked(false)
-            swipeAnim.setValue(0)
-            nextQuoteAnim.setValue(height)
-            prevQuoteAnim.setValue(-height)
-            setIsAnimating(false)
-          })
+            swipeAnim.setValue(0);
+            nextQuoteAnim.setValue(height);
+            prevQuoteAnim.setValue(-height);
+            setCurrentQuoteIndex((prev) => (prev === 0 ? quotes.length - 1 : prev - 1));
+            setCurrentQuoteLiked(false);
+            setIsAnimating(false);
+          });
         } else {
           Animated.parallel([
             Animated.spring(swipeAnim, {
               toValue: 0,
-              tension: 100,
-              friction: 8,
               useNativeDriver: true,
             }),
             Animated.spring(nextQuoteAnim, {
               toValue: height,
-              tension: 100,
-              friction: 8,
               useNativeDriver: true,
             }),
             Animated.spring(prevQuoteAnim, {
               toValue: -height,
-              tension: 100,
-              friction: 8,
               useNativeDriver: true,
             }),
-          ]).start()
+          ]).start(() => {
+            setIsAnimating(false);
+          });
         }
       },
       onPanResponderTerminate: () => {
-        Animated.parallel([
-          Animated.spring(swipeAnim, {
-            toValue: 0,
-            tension: 100,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.spring(nextQuoteAnim, {
-            toValue: height,
-            tension: 100,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-          Animated.spring(prevQuoteAnim, {
-            toValue: -height,
-            tension: 100,
-            friction: 8,
-            useNativeDriver: true,
-          }),
-        ]).start()
+        setIsAnimating(false);
       },
     }),
-  ).current
+  ).current;
 
-  // Handle like action (keeping existing)
-  const handleLike = () => {
-    if (isAnimating || isSharing) return
+  // Handle like action
+  const handleLike = async () => {
+    if (!currentQuote.id) return;
 
     if (currentQuoteLiked) {
-      setLikedQuotes((prev) => prev.filter(id => id !== currentQuote.id))
-      setCurrentQuoteLiked(false)
+      setLikedQuotes((prev) => prev.filter(id => id !== currentQuote.id));
+      setCurrentQuoteLiked(false);
     } else if (likedQuotes.length < maxProgress) {
-      if (!likedQuotes.includes(currentQuote.id)) {
-        setLikedQuotes((prev) => [...prev, currentQuote.id])
-        setCurrentQuoteLiked(true)
+      setLikedQuotes((prev) => [...prev, currentQuote.id]);
+      setCurrentQuoteLiked(true);
 
-        heartScale.setValue(0)
-        heartOpacity.setValue(0)
+      try {
+        const { userId } = useStore.getState();
 
-        Animated.sequence([
-          Animated.parallel([
-            Animated.spring(heartScale, {
-              toValue: 1,
-              tension: 100,
-              friction: 5,
-              useNativeDriver: true,
-            }),
-            Animated.timing(heartOpacity, {
-              toValue: 1,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.delay(800),
-          Animated.parallel([
-            Animated.timing(heartScale, {
-              toValue: 1.2,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-            Animated.timing(heartOpacity, {
-              toValue: 0,
-              duration: 500,
-              useNativeDriver: true,
-            }),
-          ]),
-        ]).start()
+        console.log("handleLike: Saving quote for user:", {
+          text: currentQuote.text,
+          author: currentQuote.author,
+          userId: userId,
+        });
+        if (!userId) {
+          console.log("handleLike: User ID is not available. Cannot save quote.");
+          Toast.error("You need to be logged in to save quotes.");
+          return;
+
+        }
+        const res = await saveQuote({
+          text: currentQuote.text,
+          author: currentQuote.author,
+          userId: userId,
+        });
+
+        if (res && res.success) {
+          Toast.success("Quote saved!");
+        } else if (res && res.message === "Quote already saved by user") {
+          Toast.info("You already saved this quote.");
+        } else {
+          Toast.error("Could not save quote.");
+        }
+      } catch (error) {
+        console.error("Error saving quote:", error);
+        Toast.error("Error saving quote.");
       }
+
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(heartScale, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(heartOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.delay(1000),
+        Animated.parallel([
+          Animated.timing(heartScale, {
+            toValue: 1.2,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+          Animated.timing(heartOpacity, {
+            toValue: 0,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        heartScale.setValue(0);
+      });
     }
-  }
+  };
 
-  // Modal handlers (keeping existing)
-  const togglePremiumModal = () => {
-    if (isAnimating || isSharing) return
-    setPremiumModalVisible(!premiumModalVisible)
-  }
+  // Handle share action
+  const handleShare = async () => {
+    try {
+      let shareMessage = currentQuote.text || "";
+      if (currentQuote.author && currentQuote.author !== "Unknown") {
+        shareMessage += `\n\n— ${currentQuote.author}`;
+      }
 
-  const toggleSettingsModal = () => {
-    if (isAnimating || isSharing) return
-    setSettingsModalVisible(!settingsModalVisible)
-  }
-
-  const toggleThemesModal = () => {
-    if (isAnimating || isSharing) return
-    setThemesModalVisible(!themesModalVisible)
-  }
-
-  const handleThemeChange = (theme) => {
-    setCurrentTheme(theme)
-  }
-
-  const handleNavigation = (screenName) => {
-    if (isAnimating || isSharing) return
-    if (navigation && navigation.navigate) {
-      navigation.navigate(screenName)
+      await Share.share({
+        message: shareMessage,
+        title: "Daily Inspiration",
+      });
+    } catch (error) {
+      console.log("Error sharing:", error);
     }
-  }
+  };
 
-  // Render background for share image
-  const renderShareBackground = () => {
-    if (currentTheme.type === "color" && !currentTheme.isGradient) {
-      return { backgroundColor: currentTheme.value }
-    } else if (currentTheme.type === "gradient") {
-      return (
-        <LinearGradient
-          colors={currentTheme.value}
-          style={StyleSheet.absoluteFillObject}
-        />
-      )
-    } else if (currentTheme.type === "image") {
-      return (
-        <ImageBackground
-          source={{ uri: currentTheme.value }}
-          style={StyleSheet.absoluteFillObject}
-          resizeMode="cover"
-        >
-          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0, 0, 0, 0.3)" }]} />
-        </ImageBackground>
-      )
-    }
-    return { backgroundColor: "#F5F5F0" }
-  }
+  // Toggle modals
+  const togglePremiumModal = () => setPremiumModalVisible(!premiumModalVisible);
+  const toggleSettingsModal = () => setSettingsModalVisible(!settingsModalVisible);
+  const toggleThemesModal = () => setThemesModalVisible(!themesModalVisible);
+  const handleThemeChange = (theme) => setCurrentTheme(theme);
 
-  // Render background for main view
+  // Render background based on current theme
   const renderBackground = () => {
     if (currentTheme.type === "color" && !currentTheme.isGradient) {
-      return <View style={[styles.backgroundContainer, { backgroundColor: currentTheme.value }]} />
+      return <View style={[styles.backgroundContainer, { backgroundColor: currentTheme.value }]} />;
     } else if (currentTheme.type === "gradient") {
-      return <LinearGradient colors={currentTheme.value} style={styles.backgroundContainer} />
+      return <LinearGradient colors={currentTheme.value} style={styles.backgroundContainer} />;
     } else if (currentTheme.type === "image") {
       return (
         <ImageBackground source={{ uri: currentTheme.value }} style={styles.backgroundContainer} resizeMode="cover">
           <View style={styles.imageOverlay} />
         </ImageBackground>
-      )
+      );
     }
-    return <View style={[styles.backgroundContainer, { backgroundColor: "#F5F5F0" }]} />
+    return <View style={[styles.backgroundContainer, { backgroundColor: "#F5F5F0" }]} />;
+  };
+
+  // Get the current text color
+  const textColor = getTextColor();
+  const elementBgColor = getElementBgColor();
+
+  // Show loading state
+  // if (isLoading && quotes.length === 0) {
+  //   return (
+  //     <SafeAreaView style={styles.safeArea}>
+  //       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+  //         <ActivityIndicator size="large" color={textColor} />
+  //       </View>
+  //     </SafeAreaView>
+  //   );
+  // }
+
+  // Show empty state
+  if (quotes.length === 0 && !isLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <ToastManager />
+        <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <Text style={{ color: textColor }}>No quotes available</Text>
+          <TouchableOpacity
+            onPress={fetchQuotes}
+            style={[styles.retryButton, { backgroundColor: elementBgColor }]}
+          >
+            <Text style={{ color: textColor }}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
-  const textColor = getTextColor()
-  const elementBgColor = getElementBgColor()
-  const getHeartIconName = () => (currentQuoteLiked ? "heart" : "heart-outline")
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
+      {/* Background */}
       {renderBackground()}
 
-      {/* Hidden ViewShot for creating share images */}
-      <ViewShot
-        ref={viewShotRef}
-        options={{
-          fileName: "quote-share",
-          format: "png",
-          quality: 0.9,
-          width: 400,
-          height: 600,
-        }}
-        style={styles.shareImageContainer}
-      >
-        <View style={[styles.shareBackground, renderShareBackground()]}>
-          {currentTheme.type === "gradient" && renderShareBackground()}
-          {currentTheme.type === "image" && renderShareBackground()}
-          <View style={styles.shareContent}>
-            <Text style={[styles.shareQuoteText, { color: textColor }]}>
-              {currentQuote.text}
-            </Text>
-            <View style={styles.shareAppLink}>
-              <Text style={[styles.shareAppText, { color: textColor }]}>
-                » motivation.app
-              </Text>
-            </View>
-          </View>
-        </View>
-      </ViewShot>
-
-      <SafeAreaView style={styles.safeArea}>
+      {/* Content */}
+      <View style={styles.safeArea}>
         <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-
-        {/* Header */}
+        <ToastManager />
+        {/* Progress bar */}
         <View style={styles.header}>
           <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
             <Ionicons name="heart" size={18} color={textColor} style={{ opacity: progress > 0 ? 1 : 0.3 }} />
@@ -482,11 +434,10 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
               />
             </View>
           </View>
+
           <TouchableOpacity
             style={[styles.crownButton, { backgroundColor: elementBgColor }]}
             onPress={togglePremiumModal}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Crown size={24} color={textColor} />
           </TouchableOpacity>
@@ -494,29 +445,57 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
         {/* Quote container */}
         <View style={styles.quoteContainer}>
-          <View style={styles.gestureArea} {...panResponder.panHandlers}>
+          {
+            isLoading && quotes.length === 0 ?
+              (
+                <SafeAreaView style={styles.safeArea}>
+                  <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color={textColor} />
+                    <Text style={{ color: textColor, marginTop: 10 }}>Loading quotes...</Text>
+                  </View>
+                </SafeAreaView>
+              ) : ""
+          }
+
+
+          <View style={styles.swipeArea} {...panResponder.panHandlers}>
+            {/* Previous quote */}
             <Animated.View
               style={[styles.quoteWrapper, styles.prevQuote, { transform: [{ translateY: prevQuoteAnim }] }]}
-              pointerEvents="none"
             >
-              <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text}</Text>
+              <Text style={[styles.quoteText, { color: textColor }]}>{prevQuote.text || ""}</Text>
+              {prevQuote.author && prevQuote.author !== "Unknown" && (
+                <Text style={[styles.authorText, { color: textColor }]}>— {prevQuote.author}</Text>
+              )}
             </Animated.View>
 
-            <Animated.View
-              style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}
-              pointerEvents="none"
-            >
-              <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text}</Text>
+            {/* Current quote */}
+            <Animated.View style={[styles.quoteWrapper, { transform: [{ translateY: swipeAnim }] }]}>
+              <Text style={[styles.quoteText, { color: textColor }]}>{currentQuote.text || ""}</Text>
+              {currentQuote.author && currentQuote.author !== "Unknown" && (
+                <Text style={[styles.authorText, { color: textColor }]}>— {currentQuote.author}</Text>
+              )}
             </Animated.View>
 
+            {/* Next quote */}
             <Animated.View
               style={[styles.quoteWrapper, styles.nextQuote, { transform: [{ translateY: nextQuoteAnim }] }]}
-              pointerEvents="none"
             >
-              <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text}</Text>
+              <Text style={[styles.quoteText, { color: textColor }]}>{nextQuote.text || ""}</Text>
+              {nextQuote.author && nextQuote.author !== "Unknown" && (
+                <Text style={[styles.authorText, { color: textColor }]}>— {nextQuote.author}</Text>
+              )}
             </Animated.View>
           </View>
         </View>
+
+        {/* Loading indicator */}
+        {/* {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color={textColor} />
+          </View>
+        )} */}
+
 
         {/* Heart animation overlay */}
         <Animated.View
@@ -534,61 +513,53 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
 
         {/* Action buttons */}
         <View style={styles.actionContainer}>
-          <TouchableOpacity
-            onPress={handleShare}
-            style={styles.actionButton}
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-            disabled={isSharing}
-          >
-            <Ionicons
-              name={isSharing ? "hourglass-outline" : "share-outline"}
-              size={28}
-              color={textColor}
-            />
+          <TouchableOpacity onPress={handleShare} style={styles.actionButton} disabled={isAnimating}>
+            <Ionicons name="share-outline" size={28} color={textColor} />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleLike}
-            style={styles.actionButton}
-            activeOpacity={0.7}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
+
+          <TouchableOpacity onPress={handleLike} style={styles.actionButton} disabled={isAnimating}>
             <Ionicons name={getHeartIconName()} size={28} color={textColor} />
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
-          Swipe up/down
-        </Text>
+        {/* Swipe/no more quotes text */}
+        {!hasMoreQuotes && quotes.length > 0 ? (
+          <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
+            No more quotes available
+          </Text>
+        ) : (
+          <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
+            Swipe up/down for more quotes
+          </Text>
+        )}
 
         {/* Bottom navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
-            onPress={() => handleNavigation("Topics")}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            onPress={() => navigation.navigate("Topics")}
+            disabled={isAnimating}
           >
             <Ionicons name="grid" size={24} color={textColor} />
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleThemesModal}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={isAnimating}
           >
             <Ionicons name="color-wand" size={24} color={textColor} />
           </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: elementBgColor }]}
             onPress={toggleSettingsModal}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={isAnimating}
           >
             <Ionicons name="person" size={24} color={textColor} />
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
 
       {/* Modals */}
       <PremiumModal visible={premiumModalVisible} onClose={togglePremiumModal} />
@@ -600,8 +571,8 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         onThemeChange={handleThemeChange}
         isPremiumUser={isPremiumUser}
       />
-    </View>
-  )
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -625,7 +596,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 20,
-    zIndex: 10,
   },
   progressContainer: {
     flexDirection: "row",
@@ -661,11 +631,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  gestureArea: {
+  swipeArea: {
     flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
   },
   quoteWrapper: {
     position: "absolute",
@@ -688,6 +659,19 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     lineHeight: 36,
+    paddingHorizontal: 20,
+  },
+  authorText: {
+    fontSize: 18,
+    fontStyle: 'italic',
+    marginTop: 10,
+    textAlign: 'center',
+    opacity: 0.7
+  },
+  loadingContainer: {
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
   },
   heartOverlay: {
     position: "absolute",
@@ -697,14 +681,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 20,
+    zIndex: 10,
   },
   actionContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
-    zIndex: 10,
   },
   actionButton: {
     width: 60,
@@ -716,13 +699,13 @@ const styles = StyleSheet.create({
   swipeText: {
     textAlign: "center",
     marginBottom: 20,
+    fontSize: 12,
   },
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
     paddingBottom: 20,
     paddingHorizontal: 20,
-    zIndex: 10,
   },
   navButton: {
     width: 60,
@@ -731,46 +714,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Share image styles
-  shareImageContainer: {
-    position: "absolute",
-    top: -10000, // Hide off-screen
-    left: 0,
-    width: 400,
-    height: 600,
-  },
-  shareBackground: {
-    width: 400,
-    height: 600,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  shareContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 40,
-    position: "relative",
-  },
-  shareQuoteText: {
-    fontSize: 32,
-    fontWeight: "bold",
-    textAlign: "center",
-    lineHeight: 42,
-    marginBottom: 60,
-  },
-  shareAppLink: {
-    position: "absolute",
-    bottom: 80,
-    alignItems: "center",
-  },
-  shareAppText: {
-    fontSize: 16,
-    fontWeight: "600",
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  retryButton: {
+    padding: 12,
     borderRadius: 20,
-    overflow: "hidden",
+    marginTop: 20,
   },
-})
+});

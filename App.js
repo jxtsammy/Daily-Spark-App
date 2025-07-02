@@ -1,4 +1,5 @@
 // App.js
+import React, { useState, useEffect } from 'react';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -39,6 +40,13 @@ import AddQuotes from './components/HomeApp/ExporeOptions/AddQuotes'
 import Favorites from './components/HomeApp/ExporeOptions/Favorites'
 import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
 import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
+import * as SplashScreen from 'expo-splash-screen';
+
+import mobileAds from 'react-native-google-mobile-ads';
+import { createAnonymous } from './functions/create-anonymous';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 

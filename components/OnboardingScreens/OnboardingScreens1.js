@@ -1,25 +1,86 @@
 import React, { useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  StatusBar, 
-  Animated, 
-  Easing 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+  Animated,
+  Easing
 } from 'react-native';
-import Svg, { 
-  Rect, 
-  Circle, 
-  Path, 
-  Defs, 
-  LinearGradient, 
+import Svg, {
+  Rect,
+  Circle,
+  Path,
+  Defs,
+  LinearGradient,
   Stop,
   Line
 } from 'react-native-svg';
+import { useStore } from '../../store/useStore';
+import { createAnonymous } from '../../functions/create-anonymous';
 
-export default function App({navigation}) {
+
+export default function App({ navigation }) {
+
+  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+  const getOnboarded = useStore((state) => state.onboarded);
+  const userId = useStore((state) => state.userId);
+  const [userCreatedState, setUserCreatedState] = React.useState(false);
+
+  const initialRouteName = getOnboarded ? 'PremiumOnbording' : 'Onboarding2';
+
+  let attempts = 0;
+
+
+  const tryCreateAnonymous = async () => {
+    if (userId) {
+      setUserCreatedState(true);
+      console.log('User already exists, skipping creation...userId:',userId);
+      return true;
+    }
+
+    if (!userId) {
+      console.log('Creating anonymous user... Attempt:', attempts + 1);
+      const userCreated = await createAnonymous();
+      if (userCreated) {
+        console.log('Anonymous user created successfully');
+        return true;
+      } else if (attempts < 1) {
+        attempts += 1;
+        await tryCreateAnonymous();
+      } else {
+        console.error('Failed to create anonymous user after 2 attempts');
+        return false;
+      }
+    }
+  };
+
+
+  useEffect(() => {
+    const handleUserCreation = async () => {
+     const rep= await tryCreateAnonymous();
+
+
+      if (getOnboarded  && rep) {
+        console.log('User already onboarded, navigating to PremiumOnboarding');
+        navigation.navigate("PremiumOnbording");
+      }
+
+
+    };
+
+    handleUserCreation();
+  }, [getOnboarded, userId, navigation, setUserCreatedState]);
+
+
+  const onCLickContinue = () => {
+    console.log(getOnboarded)
+    setOnboardedTrue();
+    navigation.navigate(initialRouteName);
+  }
+
   // Animation value for the sun
   const sunAnimValue = useRef(new Animated.Value(0)).current;
 
@@ -49,6 +110,7 @@ export default function App({navigation}) {
     outputRange: [0, -15], // Sun moves up 15 pixels and back down
   });
 
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -59,15 +121,15 @@ export default function App({navigation}) {
             Inspiration to think positively, stay consistent, and focus on your growth
           </Text>
         </View>
-        
+
         <View style={styles.illustrationContainer}>
           {/* Window with animated sun */}
           <View style={styles.windowContainer}>
             <WindowWithSun sunTranslateY={sunTranslateY} />
           </View>
         </View>
-        
-        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={() => navigation.navigate('Onboarding2')}>
+
+        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onCLickContinue}>
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
       </View>
@@ -77,30 +139,28 @@ export default function App({navigation}) {
 
 // Window with Sun SVG Component
 const WindowWithSun = ({ sunTranslateY }) => {
-  // Convert Animated.Value to number for SVG
   const translateY = sunTranslateY.__getValue ? sunTranslateY.__getValue() : 0;
-  
+
   return (
     <Svg width="280" height="320" viewBox="0 0 280 320">
-      {/* Sky background */}
       <Defs>
         <LinearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
           <Stop offset="0%" stopColor="#7EB6FF" />
           <Stop offset="100%" stopColor="#C4E0FF" />
         </LinearGradient>
       </Defs>
-      
+
       {/* Window background (sky) */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="url(#skyGradient)" />
-      
+
       {/* Sun with rays */}
-      <Circle 
-        cx="140" 
-        cy={140 + translateY} 
-        r="50" 
-        fill="#FFD700" 
+      <Circle
+        cx="140"
+        cy={140 + translateY}
+        r="50"
+        fill="#FFD700"
       />
-      
+
       {/* Sun rays */}
       {[...Array(12)].map((_, i) => {
         const angle = (i * 30) * Math.PI / 180;
@@ -110,9 +170,9 @@ const WindowWithSun = ({ sunTranslateY }) => {
         const y1 = (140 + translateY) + innerRadius * Math.sin(angle);
         const x2 = 140 + outerRadius * Math.cos(angle);
         const y2 = (140 + translateY) + outerRadius * Math.sin(angle);
-        
+
         return (
-          <Line 
+          <Line
             key={i}
             x1={x1}
             y1={y1}
@@ -124,19 +184,161 @@ const WindowWithSun = ({ sunTranslateY }) => {
           />
         );
       })}
-      
+
       {/* Window frame */}
       <Rect x="20" y="20" width="240" height="280" rx="8" fill="none" stroke="#4A5568" strokeWidth="10" />
-      
+
       {/* Window panes */}
       <Line x1="20" y1="160" x2="260" y2="160" stroke="#4A5568" strokeWidth="6" />
       <Line x1="140" y1="20" x2="140" y2="300" stroke="#4A5568" strokeWidth="6" />
-      
+
       {/* Window sill */}
       <Rect x="10" y="300" width="260" height="15" rx="2" fill="#4A5568" />
     </Svg>
   );
 };
+
+export default function App({ navigation }) {
+  const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
+  const getOnboarded = useStore((state) => state.onboarded);
+  const [loading, setLoading] = useState(true);
+  const [showScreen, setShowScreen] = useState(false);
+  const sunAnimValue = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let isMounted = true;
+    let timeoutId;
+
+    const initializeApp = async () => {
+      try {
+        // 1. Create anonymous user if needed
+        await createAnonymous("OnboardingScreen");
+
+        if (!isMounted) return;
+
+        // 2. Check onboarding status
+        if (getOnboarded) {
+          console.log('User already onboarded, redirecting...');
+          setOnboardedTrue();
+
+          Toast.info('Welcome back!');
+
+          // Show rewarded ad in background
+          AdManager.showRewarded((reward) => {
+            console.log(`Earned ${reward.amount} ${reward.type}`);
+          });
+
+          // Navigate after short delay for toast
+          timeoutId = setTimeout(() => {
+            if (isMounted) {
+              navigation.replace('PremiumOnbording');
+            }
+          }, 1500);
+        } else {
+          // User needs to see onboarding
+          if (isMounted) {
+            setShowScreen(true);
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+        if (isMounted) {
+          Toast.error('Error loading app');
+          setShowScreen(true); // Fallback to showing screen
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeApp();
+
+    // Start sun animation
+    const sunAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sunAnimValue, {
+          toValue: 1,
+          duration: 3000,
+          easing: Easing.sin,
+          useNativeDriver: true,
+        }),
+        Animated.timing(sunAnimValue, {
+          toValue: 0,
+          duration: 3000,
+          easing: Easing.sin,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    sunAnimation.start();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      sunAnimation.stop();
+    };
+  }, [navigation, getOnboarded]);
+
+  const handleContinue = async () => {
+    try {
+      await AdManager.showInterstitial();
+      setOnboardedTrue();
+      navigation.replace('PremiumOnbording');
+    } catch (error) {
+      console.error('Continue error:', error);
+      // Fallback if ad fails
+      setOnboardedTrue();
+      navigation.replace('PremiumOnbording');
+    }
+  };
+
+  const sunTranslateY = sunAnimValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -15],
+  });
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#FFFFFF" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!showScreen) {
+    return null;
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <ToastManager />
+
+      <View style={styles.content}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Get motivation throughout the day</Text>
+          <Text style={styles.subtitle}>
+            Inspiration to think positively, stay consistent, and focus on your growth
+          </Text>
+        </View>
+
+        <View style={styles.illustrationContainer}>
+          <View style={styles.windowContainer}>
+            <WindowWithSun sunTranslateY={sunTranslateY} />
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.8}
+          onPress={handleContinue}
+        >
+          <Text style={styles.buttonText}>Continue</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -187,5 +389,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1A2533',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
