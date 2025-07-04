@@ -46,7 +46,22 @@ const isDarkColor = (colorValue) => {
     }
     return false;
   } catch (error) {
-    console.log("Error determining color brightness:", error);
+    const handleShare = async () => {
+      try {
+        let shareMessage = currentQuote.text || "";
+        if (currentQuote.author && currentQuote.author !== "Unknown") {
+          shareMessage += `\n\n— ${currentQuote.author}`;
+        }
+        shareMessage += "\n\nGet more daily inspiration at http://dailyspark.com";
+
+        await Share.share({
+          message: shareMessage,
+          title: "Daily Inspiration",
+        });
+      } catch (error) {
+        console.log("Error sharing:", error);
+      }
+    };
     return false;
   }
 };
