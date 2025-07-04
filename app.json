@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ashdev87.snack4fbb033849ed476aab041372ea60ce13",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -26,11 +30,11 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "owner": "ashdev87",
     "extra": {
       "eas": {
-        "projectId": "a40f02e5-e186-4eb1-8da1-458c368ee6da"
+        "projectId": "11d03376-e061-44a6-b8f1-7723864b8055"
       }
-    },
-    "owner": "ashdev87"
+    }
   }
 }

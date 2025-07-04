@@ -15,7 +15,7 @@
     "@react-navigation/native": "*",
     "@react-navigation/native-stack": "*",
     "color": "*",
-    "expo": "~52.0.46",
+    "expo": "~52.0.47",
     "expo-dev-client": "~5.0.20",
     "expo-linear-gradient": "~14.0.2",
     "expo-splash-screen": "~0.29.24",

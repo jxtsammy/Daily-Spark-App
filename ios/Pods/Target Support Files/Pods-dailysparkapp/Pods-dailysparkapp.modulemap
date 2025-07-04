@@ -1,0 +1,6 @@
+module Pods_dailysparkapp {
+  umbrella header "Pods-dailysparkapp-umbrella.h"
+
+  export *
+  module * { export * }
+}
