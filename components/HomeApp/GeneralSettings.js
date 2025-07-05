@@ -1,199 +1,122 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  StatusBar,
-  TouchableOpacity,
+import React from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  StatusBar, 
+  TouchableOpacity, 
   ImageBackground,
-  ScrollView,
-  ActivityIndicator
+  ScrollView
 } from 'react-native';
-import {
-  ArrowRight,
-  Crown,
-  BookOpen,
-  User,
-  UserCircle,
-  Globe,
+import { 
+  ArrowRight, 
+  Crown, 
+  BookOpen, 
+  User,  
+  UserCircle, 
+  Globe,  
+  Volume2, 
   Flame,
   LogIn,
   ChevronRight,
   Smartphone
 } from 'lucide-react-native';
-import { useStore } from '../../store/useStore';
-import ToastManager, { Toast } from 'toastify-react-native';
 
-export default function App({ navigation }) {
-  const { loggedIn, resetStore } = useStore();
-  const [loading, setLoading] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
+export default function App({navigation}) {
+  // Navigation handlers for each setting item
   const navigateTo = (screenName) => {
     navigation.navigate(screenName);
   };
 
-  const handleSignOut = async () => {
-    try {
-      setSigningOut(true);
-      // Add any async sign out operations here if needed
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async operation
-      
-      resetStore();
-      Toast.success('Signed out successfully');
-      navigation.navigate("Home");
-    } catch (error) {
-      console.error('Sign out error:', error);
-      Toast.error('Failed to sign out');
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
-  const renderSettingItem = (icon, title, screenName, isLast = false, disabled = false) => (
-    <TouchableOpacity
-      style={[
-        styles.settingItem, 
-        isLast ? styles.lastItem : null,
-        disabled && styles.disabledItem
-      ]}
-      onPress={() => !disabled && navigateTo(screenName)}
-      activeOpacity={disabled ? 1 : 0.7}
-      disabled={disabled}
+  const renderSettingItem = (icon, title, screenName, isLast = false) => (
+    <TouchableOpacity 
+      style={[styles.settingItem, isLast ? styles.lastItem : null]}
+      onPress={() => navigateTo(screenName)}
     >
       <View style={styles.settingItemLeft}>
-        {React.cloneElement(icon, { 
-          color: disabled ? '#888' : '#fff',
-          style: styles.icon 
-        })}
-        <Text style={[styles.settingItemText, disabled && styles.disabledText]}>
-          {title}
-        </Text>
+        {icon}
+        <Text style={styles.settingItemText}>{title}</Text>
       </View>
-      {!disabled && <ChevronRight stroke="#fff" width={20} height={20} />}
+      <ChevronRight stroke="#fff" width={20} height={20}/>
     </TouchableOpacity>
   );
 
   return (
-    <ImageBackground
-      source={require('../../assets/settings.jpg')}
+    <View 
       style={styles.backgroundImage}
-      resizeMode="cover"
     >
-      <ToastManager />
       <View style={styles.overlay}>
         <View style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="#1E2732" />
-
+          
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
+            <TouchableOpacity 
+              style={styles.backButton} 
               onPress={() => navigation.goBack()}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             >
               <ArrowRight stroke="#fff" width={24} height={24} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Settings</Text>
+            <Text style={styles.headerTitle}>General</Text>
           </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
-          ) : (
-            <ScrollView 
-              style={styles.content}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Premium Section */}
-              <Text style={styles.sectionTitle}>PREMIUM</Text>
-
-              {loggedIn ? (
-                renderSettingItem(
-                  <Crown stroke="#fff" width={24} height={24} />,
-                  "Manage subscription",
-                  "ManageSubscription"
-                )
-              ) : (
-                renderSettingItem(
-                  <Crown stroke="#fff" width={24} height={24} />,
-                  "Sign In to Manage subscription",
-                  "SignIn"
-                )
-              )}
-
-              {/* Make It Yours Section */}
-              <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>PREFERENCES</Text>
-              {renderSettingItem(
-                <BookOpen stroke="#fff" width={24} height={24} />,
-                "Content preferences",
-                "ContentPrefrencesSettings"
-              )}
-              {/* {renderSettingItem(
-                <User stroke="#fff" width={24} height={24} />,
-                "Gender identity",
-                "GenderIdentitySettings"
-              )} */}
-              {/* {renderSettingItem(
-                <UserCircle stroke="#fff" width={24} height={24} />,
-                "Name",
-                "EditName"
-              )} */}
-              {/* {renderSettingItem(
-                <Globe stroke="#fff" width={24} height={24} />,
-                "Language",
-                "LanguageSettings"
-              )} */}
-              {/* {renderSettingItem(
-                <Flame stroke="#fff" width={24} height={24} />,
-                "Streak",
-                "StreakSettings"
-              )} */}
-              {renderSettingItem(
-                <Smartphone stroke="#fff" width={24} height={24} />,
-                "About App",
-                "About",
-                true
-              )}
-
-              {/* Account Section */}
-              <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>ACCOUNT</Text>
-
-              {loggedIn ? (
-                <TouchableOpacity
-                  style={[styles.settingItem, styles.lastItem]}
-                  onPress={handleSignOut}
-                  activeOpacity={0.7}
-                  disabled={signingOut}
-                >
-                  <View style={styles.settingItemLeft}>
-                    <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />
-                    <Text style={styles.settingItemText}>
-                      {signingOut ? 'Signing out...' : 'Sign Out'}
-                    </Text>
-                  </View>
-                  {signingOut ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <ChevronRight stroke="#fff" width={20} height={20} />
-                  )}
-                </TouchableOpacity>
-              ) : (
-                renderSettingItem(
-                  <LogIn stroke="#fff" width={24} height={24} />,
-                  "Sign in",
-                  "SignIn"
-                )
-              )}
-
-              {/* Bottom padding */}
-              <View style={styles.bottomPadding} />
-            </ScrollView>
-          )}
+          
+          <ScrollView style={styles.content}>
+            {/* Premium Section */}
+            <Text style={styles.sectionTitle}>PREMIUM</Text>
+            {renderSettingItem(
+              <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Manage subscription",
+              "ManageSubscription"
+            )}
+            
+            {/* Make It Yours Section */}
+            <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>MAKE IT YOURS</Text>
+            {renderSettingItem(
+              <BookOpen stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Content preferences",
+              "ContentPrefrencesSettings"
+            )}
+            {renderSettingItem(
+              <User stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Gender identity",
+              "GenderIdentitySettings"
+            )}
+            {renderSettingItem(
+              <UserCircle stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Name",
+              "EditName"
+            )}
+            {renderSettingItem(
+              <Globe stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Language",
+              "LanguageSettings"
+            )}
+            {renderSettingItem(
+              <Flame stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Streak",
+              "StreakSettings"
+            )}
+            {renderSettingItem(
+              <Smartphone stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "About",
+              "About",
+              true
+            )}
+            
+            {/* Account Section */}
+            <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>ACCOUNT</Text>
+            {renderSettingItem(
+              <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Sign in",
+              "SignIn"
+            )}
+            
+            {/* Bottom padding */}
+            <View style={styles.bottomPadding} />
+          </ScrollView>
         </View>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
@@ -201,6 +124,7 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
+    backgroundColor:"#222"
   },
   overlay: {
     flex: 1,
@@ -230,11 +154,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   sectionTitle: {
     color: '#fff',
     fontSize: 16,
@@ -257,12 +176,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
     paddingVertical: 20
-  },
-  disabledItem: {
-    opacity: 0.6,
-  },
-  disabledText: {
-    color: '#888',
   },
   lastItem: {
     marginBottom: 0,

@@ -11,19 +11,24 @@ import {
   Platform,
   ImageBackground,
   ActivityIndicator,
-  ScrollView
+  ScrollView,
+  Image
 } from "react-native";
+// Removed MediaLibrary and view-shot imports that were causing errors
+import * as FileSystem from 'expo-file-system';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Crown } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import PremiumModal from "./PremiumModal";
 import SettingsModal from "./SettingScreen";
+import { getShareImageFromTheme } from "./Themes";
 import ThemesModal from "./Themes";
 import Color from "color";
 import { useStore } from "../../store/useStore";
 import { CheckHasFreeTrial } from "../../functions/check-has-free-trial";
 import { getMultipleQuotes, saveQuote } from "../../functions/quotes";
 import ToastManager, { Toast } from "toastify-react-native";
+import AdManager from "../../services/AdManager";
 
 const { width, height } = Dimensions.get("window");
 
@@ -64,11 +69,16 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [themesModalVisible, setThemesModalVisible] = useState(false);
   const [currentTheme, setCurrentTheme] = useState(defaultTheme);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [quotes, setQuotes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [hasMoreQuotes, setHasMoreQuotes] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  
+  // Ad tracking states
+  const [scrollCount, setScrollCount] = useState(0);
+  const [totalScrolls, setTotalScrolls] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState(0);
 
   const scrollViewRef = useRef(null);
   const currentQuote = quotes[currentQuoteIndex] || { text: "", author: "", source: "" };
@@ -139,6 +149,46 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     return true;
   }, [navigation]);
 
+  // Handle ad display logic
+  const handleAdDisplay = useCallback(async (direction) => {
+    const newScrollCount = scrollCount + 1;
+    const newTotalScrolls = totalScrolls + 1;
+    
+    // Console log for debugging
+    console.log(`Ad tracking: ${direction} scroll, count: ${newScrollCount}, total: ${newTotalScrolls}`);
+    
+    // Update counts
+    setScrollCount(newScrollCount);
+    setTotalScrolls(newTotalScrolls);
+    
+    // Show rewarded ad every 5 scrolls (regardless of direction)
+    if (newScrollCount % 5 === 0) {
+      console.log('Showing rewarded ad after 5 scrolls');
+      const rewardShown = await AdManager.showRewarded((reward) => {
+        console.log('Reward earned:', reward);
+        Toast.show("Reward earned! Keep scrolling for more quotes.", "success");
+      });
+      
+      if (rewardShown) {
+        console.log('Rewarded ad was shown successfully');
+      } else {
+        console.log('Rewarded ad failed to show or not loaded');
+      }
+    }
+    
+    // Show interstitial ad every 10 total scrolls
+    if (newTotalScrolls % 10 === 0) {
+      console.log('Showing interstitial ad after 10 total scrolls');
+      const interstitialShown = await AdManager.showInterstitial();
+      
+      if (interstitialShown) {
+        console.log('Interstitial ad was shown successfully');
+      } else {
+        console.log('Interstitial ad failed to show or not loaded');
+      }
+    }
+  }, [scrollCount, totalScrolls]);
+
   useEffect(() => {
     let isMounted = true;
     
@@ -167,7 +217,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const getTextColor = () => (isDark ? "#FFFFFF" : "#000000");
   const getElementBgColor = () => (isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)");
 
-  const handleLike = async () => {
+const handleLike = async () => {
     if (!currentQuote.id) return;
 
     const isLiked = likedQuotes.includes(currentQuote.id);
@@ -180,7 +230,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       try {
         const { userId } = useStore.getState();
         if (!userId) {
-          Toast.show("You need to be logged in to save quotes.", "error");
+          Toast.error("You need to be logged in to save quotes.");
           return;
         }
         
@@ -191,32 +241,89 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
         });
 
         if (res && res.success) {
-          Toast.show("Quote saved!", "success");
+          Toast.success("Quote saved!");
         } else if (res && res.message === "Quote already saved by user") {
-          Toast.show("You already saved this quote.", "info");
+          Toast.success("You already saved this quote.");
         } else {
-          Toast.show("Could not save quote.", "error");
+          Toast.error("Could not save quote.");
         }
       } catch (error) {
         console.error("Error saving quote:", error);
-        Toast.show("Error saving quote.", "error");
+        Toast.error("Error saving quote.");
       }
     }
   };
-
+  
   const handleShare = async () => {
     try {
+      // Check if already loading
+      if (isLoading) return;
+      
+      // Set loading state
+      setIsLoading(true);
+      
+      // Enhanced text sharing with theme information
       let shareMessage = currentQuote.text || "";
       if (currentQuote.author && currentQuote.author !== "Unknown") {
         shareMessage += `\n\n— ${currentQuote.author}`;
       }
+      shareMessage += "\n\nShared from Daily Spark";
+      
+      // Add theme information if available
+      if (currentTheme) {
+        if (currentTheme.type === 'color') {
+          shareMessage += `\nTheme: ${currentTheme.name}`;
+        } else if (currentTheme.type === 'gradient') {
+          shareMessage += `\nTheme: ${currentTheme.name} Gradient`;
+        } else if (currentTheme.type === 'image') {
+          shareMessage += `\nTheme: ${currentTheme.name} Background`;
+        }
+      }
 
+      // First attempt to share with image if the theme has one
+      if (currentTheme && currentTheme.type === 'image') {
+        try {
+          const imageAsset = getShareImageFromTheme(currentTheme);
+          
+          // If we have a valid image, attempt to share it with the text
+          if (imageAsset && (imageAsset.uri || typeof imageAsset === 'number')) {
+            // For iOS, we can share the URL directly
+            if (Platform.OS === 'ios' && imageAsset.uri) {
+              await Share.share({
+                message: shareMessage,
+                url: imageAsset.uri,
+                title: "Daily Inspiration",
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (imageError) {
+          console.log('Error preparing image for sharing:', imageError);
+          // Fall back to text-only sharing
+        }
+      }
+
+      // If image sharing isn't possible or failed, do text-only sharing
       await Share.share({
         message: shareMessage,
         title: "Daily Inspiration",
       });
     } catch (error) {
-      console.log("Error sharing:", error);
+      console.log('Error sharing:', error);
+      // Simple fallback sharing if needed
+      try {
+        const simpleMessage = `${currentQuote.text}\n\n— ${currentQuote.author || "Unknown"}\n\nShared from Daily Spark`;
+        await Share.share({
+          message: simpleMessage,
+          title: "Daily Inspiration",
+        });
+      } catch (innerError) {
+        console.log('Error with fallback sharing:', innerError);
+      }
+    } finally {
+      // Always reset loading state
+      setIsLoading(false);
     }
   };
 
@@ -225,6 +332,13 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     const index = Math.round(offsetY / ITEM_HEIGHT);
     
     if (index !== currentQuoteIndex && index >= 0 && index < quotes.length) {
+      // Determine scroll direction
+      const direction = index > currentQuoteIndex ? 'down' : 'up';
+      
+      // Trigger ad logic for every scroll movement
+      handleAdDisplay(direction);
+      
+      setPreviousIndex(currentQuoteIndex);
       setCurrentQuoteIndex(index);
     }
 
@@ -232,7 +346,7 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
     if (index >= quotes.length - 2 && hasMoreQuotes && !isLoadingMore) {
       fetchQuotes(true);
     }
-  }, [currentQuoteIndex, quotes.length, hasMoreQuotes, isLoadingMore, fetchQuotes]);
+  }, [currentQuoteIndex, quotes.length, hasMoreQuotes, isLoadingMore, fetchQuotes, handleAdDisplay]);
 
   const handleMomentumScrollEnd = useCallback((event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -340,6 +454,8 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <ToastManager />
       
+      {/* Removed hidden capture view - using text-only sharing instead */}
+      
       {/* Header */}
       <View style={styles.header}>
         <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
@@ -396,9 +512,9 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
       </ScrollView>
 
       {/* Swipe instruction */}
-      <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
+      {/* <Text style={[styles.swipeText, { color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.5)" }]}>
         {!hasMoreQuotes ? "No more quotes available" : "Swipe up/down for more quotes"}
-      </Text>
+      </Text> */}
 
       {/* Bottom Navigation */}
       <View style={styles.bottomNav}>

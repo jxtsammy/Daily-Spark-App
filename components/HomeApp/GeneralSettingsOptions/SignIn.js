@@ -103,10 +103,8 @@ const SignInScreen = ({ navigation }) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <ImageBackground
-        source={require('../../../assets/73d09b27939ce77c2e1e3be81ecd45f2.jpg')}
+      <View
         style={styles.backgroundImage}
-        resizeMode="cover"
       >
         <StatusBar barStyle="light-content" backgroundColor="black" />
         <ToastManager />
@@ -214,7 +212,7 @@ const SignInScreen = ({ navigation }) => {
             </View>
           </SafeAreaView>
         </LinearGradient>
-      </ImageBackground>
+      </View>
     </TouchableWithoutFeedback>
   );
 };
@@ -222,6 +220,7 @@ const SignInScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
+    backgroundColor: '#222',
   },
   gradientOverlay: {
     flex: 1,
