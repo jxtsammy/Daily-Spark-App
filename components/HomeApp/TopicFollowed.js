@@ -255,7 +255,7 @@ const generalOptions = [
   { id: 1, name: "My favorites", icon: "heart-outline" },
   { id: 2, name: "My collections", icon: "albums-outline" },
   { id: 3, name: "My own quotes", icon: "create-outline" },
-  { id: 4, name: "Recent quotes", icon: "time-outline" },
+  { id: 4, name: "Daily Quote", icon: "time-outline" },
 ]
 
 export default function TopicsScreen({ navigation, customBackgroundImage }) {

@@ -11,11 +11,12 @@ import {
 import { X, Check, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useStore } from '../../store/useStore';
-  import { useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { GetAllPlans } from '../../functions/get-all-plans';
 import { GoPremium } from '../../functions/go-premium';
 import * as WebBrowser from 'expo-web-browser';
 import { VerifyPayment } from '../../functions/verify-payment';
+
 
 
 
@@ -28,63 +29,69 @@ export default function PremiumModal({ visible, onClose }) {
 
   const navigation = useNavigation();
 
- const handleGoPremium = async () => {
-  if (!selectedSubscriptionID) {
-    alert("Please select a subscription plan");
-    return;
-  }
-  console.log("Selected Subscription ID:", selectedSubscriptionID);
-
-  try {
-    // 1. Initialize payment
-    const res = await GoPremium(selectedSubscriptionID);
-    console.log("Go Premium response:", res);
-
-    if (res.status === "error") {
-      alert(res.message + " Please Sign In to continue");
-      navigation.navigate("ManageSubscription");
-      onClose()
+  const handleGoPremium = async () => {
+    if (!selectedSubscriptionID) {
+      alert("Please select a subscription plan");
       return;
     }
+    console.log("Selected Subscription ID:", selectedSubscriptionID);
 
-    if (!res.payload?.payment_url) {
-      alert("Failed to initialize payment. Please try again.");
-      return;
-    }
+    try {
+      // 1. Initialize payment
+      const res = await GoPremium(selectedSubscriptionID);
+      console.log("Go Premium response:", res);
 
-    // 2. Open payment URL
-    await WebBrowser.openBrowserAsync(res.payload.payment_url);
-    
-    // 3. Verify payment (with retry logic)
-    let verificationAttempts = 0;
-    const maxAttempts = 3;
-    let paymentResult;
-
-    while (verificationAttempts < maxAttempts) {
-      paymentResult = await VerifyPayment(res.payload.reference);
-      
-      if (paymentResult.status === "success") {
-        alert("Payment verified successfully!");
-         onClose()
+      if (res.status === "error") {
+        if (res.message === "User email not found") {
+          alert(res.message + " Please Sign In to continue");
+          navigation.navigate("SignIn");
+          onClose()
+          return;
+        }
+        alert(res.message + " Please try again later");
+        navigation.navigate("Home");
+        onClose()
         return;
       }
 
-      verificationAttempts++;
-      if (verificationAttempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retrying
+      if (!res.payload?.payment_url) {
+        alert("Failed to initialize payment. Please try again.");
+        return;
       }
+
+      // 2. Open payment URL
+      await WebBrowser.openBrowserAsync(res.payload.payment_url);
+
+      // 3. Verify payment (with retry logic)
+      let verificationAttempts = 0;
+      const maxAttempts = 3;
+      let paymentResult;
+
+      while (verificationAttempts < maxAttempts) {
+        paymentResult = await VerifyPayment(res.payload.reference);
+
+        if (paymentResult.status === "success") {
+          alert("Payment verified successfully!");
+          onClose()
+          return;
+        }
+
+        verificationAttempts++;
+        if (verificationAttempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retrying
+        }
+      }
+
+      // If all attempts fail
+      alert("Payment verification failed. Please check your subscription status later.");
+      navigation.navigate("ManageSubscriptions");
+
+    } catch (error) {
+      console.error("Error in handleGoPremium:", error);
+      alert("An error occurred. Please try again.");
     }
-
-    // If all attempts fail
-    alert("Payment verification failed. Please check your subscription status later.");
-    navigation.navigate("ManageSubscriptions");
-
-  } catch (error) {
-    console.error("Error in handleGoPremium:", error);
-    alert("An error occurred. Please try again.");
-  }
-};
-// wrap in useEffect to ensure it runs only once
+  };
+  // wrap in useEffect to ensure it runs only once
   useEffect(() => {
     const fetchPlans = async () => {
       const response = await GetAllPlans();
@@ -98,7 +105,7 @@ export default function PremiumModal({ visible, onClose }) {
     };
     fetchPlans();
   }, []);
-  
+
   useEffect(() => {
     if (visible) {
       Animated.spring(slideAnim, {
@@ -117,10 +124,10 @@ export default function PremiumModal({ visible, onClose }) {
   }, [visible]);
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.modalContainer,
-        { 
+        {
           transform: [{ translateY: slideAnim }],
           opacity: visible ? 1 : 0,
           zIndex: visible ? 100 : -1,
@@ -135,15 +142,15 @@ export default function PremiumModal({ visible, onClose }) {
           </TouchableOpacity>
           <Text style={styles.title}>Try Premium</Text>
         </View>
-        
+
         {/* Crown Icon */}
         <View style={styles.crownContainer}>
           <Crown size={60} color="#8A92B2" fill="#8A92B2" />
         </View>
-        
+
         {/* Main Content */}
         <Text style={styles.subtitle}>Unlock everything</Text>
-        
+
         <View style={styles.featuresContainer}>
           <View style={styles.featureRow}>
             <View style={styles.checkCircle}>
@@ -151,21 +158,21 @@ export default function PremiumModal({ visible, onClose }) {
             </View>
             <Text style={styles.featureText}>Quotes you can't find anywhere else</Text>
           </View>
-          
+
           <View style={styles.featureRow}>
             <View style={styles.checkCircle}>
               <Check size={18} color="white" />
             </View>
             <Text style={styles.featureText}>Categories for any situation</Text>
           </View>
-          
+
           <View style={styles.featureRow}>
             <View style={styles.checkCircle}>
               <Check size={18} color="white" />
             </View>
             <Text style={styles.featureText}>Original themes, customizable</Text>
           </View>
-          
+
           <View style={styles.featureRow}>
             <View style={styles.checkCircle}>
               <Check size={18} color="white" />
@@ -173,7 +180,7 @@ export default function PremiumModal({ visible, onClose }) {
             <Text style={styles.featureText}>Enjoy the full experience</Text>
           </View>
         </View>
-        
+
 
         <View style={styles.subscriptionContainer}>
           {plans.length > 0 ? (
@@ -206,8 +213,8 @@ export default function PremiumModal({ visible, onClose }) {
                     {plan.duration_days >= 365
                       ? ' / year'
                       : plan.duration_days >= 30
-                      ? ' / month'
-                      : ` / ${plan.duration_days} days`}
+                        ? ' / month'
+                        : ` / ${plan.duration_days} days`}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -220,7 +227,7 @@ export default function PremiumModal({ visible, onClose }) {
         </View>
 
         <Text style={styles.cancelText}>Cancel anytime · No questions asked</Text>
-        <TouchableOpacity onPress={handleGoPremium }>
+        <TouchableOpacity onPress={handleGoPremium}>
           <LinearGradient
             colors={['purple', '#EC4899']}
             start={{ x: 0, y: 0 }}
@@ -235,11 +242,11 @@ export default function PremiumModal({ visible, onClose }) {
           <TouchableOpacity>
             <Text style={styles.footerLink}>Restore</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity>
             <Text style={styles.footerLink}>Terms & Conditions</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity>
             <Text style={styles.footerLink}>Other options</Text>
           </TouchableOpacity>

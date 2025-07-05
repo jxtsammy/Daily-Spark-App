@@ -95,13 +95,13 @@ export const deleteSavedQuote = async (quoteId) => {
       return false;
     }
 
-    await api.delete('/quotes/saved', {
+   const response = await api.delete('/quotes/saved', {
       data: { userId, quoteId }
     });
-    return true;
+    return response.data;
   } catch (error) {
     console.error('Error deleting quote:', error);
-    return false;
+    return error;
   }
 };
 

@@ -1,7 +1,7 @@
 "use client"
 
 // ExploreScreen.js
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, use } from "react"
 import {
   View,
   Text,
@@ -23,9 +23,10 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import { getUserCollections, createCollection } from "../../../functions/collection";
+
 
 const { width, height } = Dimensions.get("window")
-
 // Sample data for collections
 const INITIAL_COLLECTIONS = [
   { id: "1", title: "New" },
@@ -90,7 +91,7 @@ const QUOTES_BY_COLLECTION = {
 
 export default function ExploreScreen({ navigation }) {
   // State for collections and quotes
-  const [collections, setCollections] = useState(INITIAL_COLLECTIONS)
+  const [collections, setCollections] = useState([])
   const [currentView, setCurrentView] = useState("collections") // 'collections' or 'quotes'
   const [selectedCollection, setSelectedCollection] = useState(null)
   const [quotes, setQuotes] = useState([])
@@ -113,6 +114,34 @@ export default function ExploreScreen({ navigation }) {
   const quotesScrollY = useRef(new Animated.Value(0)).current
 
   // Filter quotes based on search query
+
+  const fetchCollections = async () => {
+    try {
+      const userCollections = await getUserCollections();
+      console.log("Fetched collections:", userCollections);
+      if (
+        userCollections &&
+        Array.isArray(userCollections.collections) &&
+        userCollections.collections.length > 0
+      ) {
+        // Map the API fields to match the expected collection structure
+        const mappedCollections = userCollections.collections.map((col) => ({
+          id: col.id,
+          title: col.name,
+          quotes: col.quotes || [], // Ensure quotes is an array
+        }));
+        setCollections(mappedCollections);
+      } else {
+        setCollections(INITIAL_COLLECTIONS);
+      }
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+    }
+  };
+  useEffect(() => {
+
+    fetchCollections();
+  }, []);
   useEffect(() => {
     if (!quotes) return
 
@@ -130,9 +159,10 @@ export default function ExploreScreen({ navigation }) {
 
   // Handle collection selection
   const handleCollectionPress = (collection) => {
+    console.log("Selected collection:", collection)
     setSelectedCollection(collection)
-    setQuotes(QUOTES_BY_COLLECTION[collection.id] || [])
-    setFilteredQuotes(QUOTES_BY_COLLECTION[collection.id] || [])
+    setQuotes(collection.quotes || [])
+    // setFilteredQuotes(collection.quotes || [])
 
     // Reset scroll position
     quotesScrollY.setValue(0)
@@ -221,18 +251,27 @@ export default function ExploreScreen({ navigation }) {
   }
 
   // Handle creating a new collection
-  const handleCreateCollection = () => {
+  const handleCreateCollection = async () => {
     if (newCollectionName.trim() === "") return
 
-    const newCollection = {
-      id: Date.now().toString(),
-      title: newCollectionName,
-      count: 0,
+    try {
+      const createdCollection = await createCollection(newCollectionName.trim());
+      console.log("Created collections:", createdCollection);
+      if (
+        createdCollection.success
+      ) {
+        alert("Success", createdCollection.message || "Collection created successfully")
+        setNewCollectionName("")
+        setModalVisible(false)
+
+      } else {
+        alert("Error", createdCollection.message || "Failed to create collection")
+      }
+    } catch (error) {
+      console.error("Error fetching collections:", error);
     }
 
-    setCollections((prevCollections) => [newCollection, ...prevCollections])
-    setNewCollectionName("")
-    setModalVisible(false)
+
   }
 
   // Open quote detail modal
@@ -464,7 +503,7 @@ export default function ExploreScreen({ navigation }) {
             <Animated.FlatList
               data={filteredQuotes}
               renderItem={renderQuoteItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.text}
               contentContainerStyle={styles.quotesList}
               showsVerticalScrollIndicator={false}
               onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: quotesScrollY } } }], {

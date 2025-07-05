@@ -1,7 +1,7 @@
 "use client"
 
 // QuoteDisplayScreen.js
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, use } from "react"
 import {
   View,
   Text,
@@ -21,61 +21,38 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import { getSavedQuotes,deleteSavedQuote } from "../../../functions/quotes"
 
 const { width, height } = Dimensions.get("window")
 
 export default function QuoteDisplayScreen({ navigation }) {
+
   // State for quotes
   const [quotes, setQuotes] = useState([
-    {
-      id: "1",
-      text: "Grind now. Shine later.",
-      author: "",
-      date: "Fri, May 09, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: "2",
-      text: "Don't cry over the past, it's gone. Don't stress about the future, it hasn't arrived. Live in the present and make it beautiful.",
-      author: "",
-      date: "Fri, May 09, 2025",
-      isLiked: false,
-      isSaved: true,
-    },
-    {
-      id: "3",
-      text: "Not all success comes from hard work; it also requires a vision of the end goal.",
-      author: "",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: "4",
-      text: "Put down your phone and let yourself be bored. You'll be surprised at the turns your brain might take.",
-      author: "",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: "5",
-      text: "Stop hating yourself for everything you aren't. Start loving yourself for everything you are.",
-      author: "",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: "6",
-      text: "Believe that you can do it because you can do it.",
-      author: "Bob Ross",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
   ])
+
+
+  useEffect(() => {
+    // Fetch saved quotes from the server or local storage
+    const fetchSavedQuotes = async () => {
+      try { 
+        const savedQuotes = await getSavedQuotes();
+        console.log("Fetched saved quotes:", savedQuotes)
+        if (savedQuotes && savedQuotes.length > 0) {  
+          setQuotes(savedQuotes)
+        } else {  
+
+          console.log("No saved quotes found")
+        }
+      } catch (error) {
+        console.error("Error fetching saved quotes:", error)
+      }
+    }
+    fetchSavedQuotes()
+  }, [])
+
+
+
 
   const [filteredQuotes, setFilteredQuotes] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -141,6 +118,22 @@ export default function QuoteDisplayScreen({ navigation }) {
     setModalVisible(false)
   }
 
+const deleteQuote = async (quoteId) => {
+  try {
+    const result = await deleteSavedQuote(quoteId);
+    console.log("Delete result:", result)
+    if (result && result.success) {
+      setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId));
+      Alert.alert("Success", result.message || "Quote deleted successfully");
+    } else {
+      Alert.alert("Error", (result && result.message) || "Failed to delete quote");
+    }
+  } catch (error) {
+    Alert.alert("Error", "An error occurred while deleting the quote");
+    console.error(error);
+  }
+};
+
   // Delete a quote
   const handleDeleteQuote = (quoteId) => {
     Alert.alert("Delete Quote", "Are you sure you want to delete this quote?", [
@@ -152,6 +145,7 @@ export default function QuoteDisplayScreen({ navigation }) {
         text: "Delete",
         onPress: () => {
           setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId))
+          deleteQuote(quoteId)
         },
         style: "destructive",
       },
