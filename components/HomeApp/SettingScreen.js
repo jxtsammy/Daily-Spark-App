@@ -7,8 +7,6 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Image,
-  ImageBackground,
   StatusBar,
 } from 'react-native';
 import {
@@ -138,30 +136,26 @@ export default function SettingsModal({ visible, onClose }) {
 
           {/* Premium Card */}
           <TouchableOpacity style={styles.premiumCardContainer}>
-            <ImageBackground
-              source={require('../../assets/background.jpg')}
+            <LinearGradient
+              colors={['#4B0082', '#1E3A8A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={styles.premiumCardBackground}
-              imageStyle={styles.premiumCardImage}>
-              <LinearGradient
-                colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.2)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.premiumCardOverlay}>
-                <View style={styles.premiumCardContent}>
-                  <View>
-                    <Text style={styles.premiumCardTitle}>
-                      Try Motivation Premium
-                    </Text>
-                    <Text style={styles.premiumCardDescription}>
-                      Access all categories, quotes, themes, and remove ads!
-                    </Text>
-                  </View>
-                  <View style={styles.phoneIconContainer}>
-                    <Smartphone size={40} color="white" />
-                  </View>
+            >
+              <View style={styles.premiumCardContent}>
+                <View>
+                  <Text style={styles.premiumCardTitle}>
+                    Try Motivation Premium
+                  </Text>
+                  <Text style={styles.premiumCardDescription}>
+                    Access all categories, quotes, themes, and remove ads!
+                  </Text>
                 </View>
-              </LinearGradient>
-            </ImageBackground>
+                <View style={styles.phoneIconContainer}>
+                  <Smartphone size={40} color="white" />
+                </View>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Firestreak */}
@@ -220,8 +214,8 @@ export default function SettingsModal({ visible, onClose }) {
               </View>
               <ChevronRight size={20} color="#A0AEC0" />
             </TouchableOpacity>
-{/* 
-            <TouchableOpacity
+
+            {/* <TouchableOpacity
               style={styles.settingItem}
               onPress={() => navigation.navigate('Reminders')}>
               <View style={styles.settingLeft}>
@@ -299,12 +293,6 @@ const styles = StyleSheet.create({
   premiumCardBackground: {
     width: '100%',
     height: '100%',
-  },
-  premiumCardImage: {
-    borderRadius: 16,
-  },
-  premiumCardOverlay: {
-    flex: 1,
     borderRadius: 16,
     padding: 20,
     justifyContent: 'center',
@@ -314,113 +302,238 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  premiumCardTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 5,
-  },
-  premiumCardDescription: {
-    fontSize: 14,
-    color: 'white',
-    opacity: 0.9,
-    width: '80%',
-  },
-  phoneIconContainer: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    transform: [{ rotateZ: '15deg' }],
-  },
-  firestreakContainer: {
-    backgroundColor: 'rgba(45, 55, 72, 0.5)',
-    borderRadius: 16,
-    padding: 15,
-    marginBottom: 20,
-  },
-  firestreakContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  fireIcon: {
-    width: 40,
-    height: 50,
-    marginRight: 15,
-    overflow: 'hidden',
-  },
-  fireGradient: {
-    width: 40,
-    height: 50,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  daysContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  dayColumn: {
-    alignItems: 'center',
-  },
-  dayText: {
-    color: 'white',
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  dayCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(160, 174, 192, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeDayCircle: {
-    backgroundColor: 'rgba(167, 139, 250, 0.8)',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 10,
-  },
-  settingsContainer: {
-    backgroundColor: 'rgba(45, 55, 72, 0.5)',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(160, 174, 192, 0.1)',
-    paddingVertical: 20,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  settingIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(160, 174, 192, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  settingText: {
-    fontSize: 20,
-    color: 'white',
-  },
-  floatingDot: {
-    position: 'absolute',
-    borderRadius: 50,
-    backgroundColor: 'white',
-    zIndex: -1,
-  },
+premiumCardTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: 'white',
+  marginBottom: 5,
+},
+premiumCardDescription: {
+  fontSize: 14,
+  color: 'white',
+  opacity: 0.9,
+  width: '80%',
+},
+phoneIconContainer: {
+  width: 60,
+  height: 60,
+  justifyContent: 'center',
+  alignItems: 'center',
+  transform: [{ rotateZ: '15deg' }],
+},
+firestreakContainer: {
+  backgroundColor: 'rgba(45, 55, 72, 0.5)',
+  borderRadius: 16,
+  padding: 15,
+  marginBottom: 20,
+},
+firestreakContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+fireIcon: {
+  width: 40,
+  height: 50,
+  marginRight: 15,
+  overflow: 'hidden',
+},
+fireGradient: {
+  width: 40,
+  height: 50,
+  borderRadius: 15,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+daysContainer: {
+  flex: 1,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+},
+dayColumn: {
+  alignItems: 'center',
+},
+dayText: {
+  color: 'white',
+  fontSize: 12,
+  marginBottom: 8,
+},
+dayCircle: {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  backgroundColor: 'rgba(160, 174, 192, 0.3)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+activeDayCircle: {
+  backgroundColor: 'rgba(167, 139, 250, 0.8)',
+},
+sectionTitle: {
+  fontSize: 14,
+  fontWeight: 'bold',
+  color: 'white',
+  marginBottom: 10,
+},
+settingsContainer: {
+  backgroundColor: 'rgba(45, 55, 72, 0.5)',
+  borderRadius: 16,
+  overflow: 'hidden',
+},
+modalContainer: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  bottom: 0,
+  height: height * 0.9,
+  backgroundColor: '#000',
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  overflow: 'hidden',
+},
+modalContent: {
+  flex: 1,
+  padding: 20,
+  paddingTop: Platform.OS === 'ios' ? 70 : StatusBar.currentHeight + 20,
+},
+header: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginBottom: 20,
+},
+closeButton: {
+  padding: 5,
+},
+title: {
+  fontSize: 24,
+  fontWeight: 'bold',
+  color: 'white',
+  marginLeft: 15,
+},
+premiumCardContainer: {
+  height: 120,
+  borderRadius: 16,
+  overflow: 'hidden',
+  marginBottom: 20,
+},
+premiumCardBackground: {
+  width: '100%',
+  height: '100%',
+  borderRadius: 16,
+  padding: 20,
+  justifyContent: 'center',
+},
+premiumCardContent: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+},
+premiumCardTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  color: 'white',
+  marginBottom: 5,
+},
+premiumCardDescription: {
+  fontSize: 14,
+  color: 'white',
+  opacity: 0.9,
+  width: '80%',
+},
+phoneIconContainer: {
+  width: 60,
+  height: 60,
+  justifyContent: 'center',
+  alignItems: 'center',
+  transform: [{ rotateZ: '15deg' }],
+},
+firestreakContainer: {
+  backgroundColor: 'rgba(45, 55, 72, 0.5)',
+  borderRadius: 16,
+  padding: 15,
+  marginBottom: 20,
+},
+firestreakContent: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+fireIcon: {
+  width: 40,
+  height: 50,
+  marginRight: 15,
+  overflow: 'hidden',
+},
+fireGradient: {
+  width: 40,
+  height: 50,
+  borderRadius: 15,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+daysContainer: {
+  flex: 1,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+},
+dayColumn: {
+  alignItems: 'center',
+},
+dayText: {
+  color: 'white',
+  fontSize: 12,
+  marginBottom: 8,
+},
+dayCircle: {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  backgroundColor: 'rgba(160, 174, 192, 0.3)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+activeDayCircle: {
+  backgroundColor: 'rgba(167, 139, 250, 0.8)',
+},
+sectionTitle: {
+  fontSize: 14,
+  fontWeight: 'bold',
+  color: 'white',
+  marginBottom: 10,
+},
+settingsContainer: {
+  backgroundColor: 'rgba(45, 55, 72, 0.5)',
+  borderRadius: 16,
+  overflow: 'hidden',
+},
+settingItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: 15,
+  borderBottomWidth: 1,
+  borderBottomColor: 'rgba(160, 174, 192, 0.1)',
+  paddingVertical: 20,
+},
+settingLeft: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+settingIconContainer: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  backgroundColor: 'rgba(160, 174, 192, 0.2)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 15,
+},
+settingText: {
+  fontSize: 20,
+  color: 'white',
+},
+floatingDot: {
+  position: 'absolute',
+  borderRadius: 50,
+  backgroundColor: 'white',
+  zIndex: -1,
+},
 });
