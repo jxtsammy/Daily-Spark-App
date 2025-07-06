@@ -1,6 +1,6 @@
 import api from '../helpers/api';
 import { useStore } from '../store/useStore';
-import ToastManager, { Toast } from 'toastify-react-native';
+import  { Toast } from 'toastify-react-native';
 
 export const createAnonymous = async (location) => {
   try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Onboarding1 from './components/OnboardingScreens/OnboardingScreens1'
@@ -41,9 +41,7 @@ import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
 import * as SplashScreen from 'expo-splash-screen';
 
 import mobileAds from 'react-native-google-mobile-ads';
-import { createAnonymous } from './functions/create-anonymous';
-
-// Keep the splash screen visible while we fetch resources
+// import {NotificationInitializer} from './services/notoficationInitializer'
 SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
@@ -51,8 +49,7 @@ const Stack = createNativeStackNavigator();
 export default function App() {
 
   const [appIsReady, setAppIsReady] = useState(false);
-
-
+ const navigationRef = useRef(null);
   useEffect(() => {
     async function prepare() {
       try {
@@ -72,12 +69,14 @@ export default function App() {
 
           });
 
+        // Initialize notifications
+        // await NotificationInitializer.initializeNotifications(navigationRef.current);
+
       } catch (e) {
         console.warn(e);
       } finally {
         // Tell the application to render
         setAppIsReady(true);
-        // await createAnonymous("App");
         await SplashScreen.hideAsync();
       }
     }

@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "usesAppleSignIn": false
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -21,7 +25,16 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.ashdev87.dailyspark"
+      "package": "com.ashdev87.dailyspark",
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "notification": {
+        "icon": "./assets/splash-icon.png",
+        "color": "#ffffff"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +47,15 @@
         {
           "androidAppId": "ca-app-pub-4921191810059647~2308605110",
           "iosAppId": "ca-app-pub-4921191810059647~3731527689"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/splash-icon.png",
+          "color": "#ffffff",
+          "sounds": [],
+          "mode": "development"
         }
       ]
     ],
