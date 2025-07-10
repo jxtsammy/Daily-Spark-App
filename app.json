@@ -15,9 +15,14 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       },
-      "usesAppleSignIn": false
+      "usesAppleSignIn": false,
+      "bundleIdentifier": "com.ashdev87.dailyspark"
     },
     "android": {
       "edgeToEdgeEnabled": true,
@@ -57,7 +62,8 @@
           "sounds": [],
           "mode": "development"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

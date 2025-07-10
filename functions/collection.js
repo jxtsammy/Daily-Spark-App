@@ -74,3 +74,25 @@ export const deleteCollection = async (collectionId) => {
     return false;
   }
 };
+
+/**
+ * Add a quote to a collection
+ */
+export const addQuoteToCollection = async (collectionId, quote) => {
+  try {
+    const { userId } = useStore.getState();
+    if (!userId) {
+      console.log("User ID is required");
+      return false;
+    }
+    const response = await api.post('/collection/add-quote', { 
+      collectionId, 
+      quote,
+      userId 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding quote to collection:', error.response?.data || error.message);
+    return false;
+  }
+};

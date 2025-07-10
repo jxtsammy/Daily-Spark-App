@@ -20,10 +20,12 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { getUserCollections, createCollection } from "../../../functions/collection";
+import ToastManager, {Toast} from "toastify-react-native"
 
 
 const { width, height } = Dimensions.get("window")
@@ -101,6 +103,7 @@ export default function ExploreScreen({ navigation }) {
   // State for new collection modal
   const [modalVisible, setModalVisible] = useState(false)
   const [newCollectionName, setNewCollectionName] = useState("")
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false)
 
   // State for quote detail modal
   const [quoteDetailVisible, setQuoteDetailVisible] = useState(false)
@@ -132,7 +135,7 @@ export default function ExploreScreen({ navigation }) {
         }));
         setCollections(mappedCollections);
       } else {
-        setCollections(INITIAL_COLLECTIONS);
+        setCollections([]);
       }
     } catch (error) {
       console.error("Error fetching collections:", error);
@@ -254,24 +257,25 @@ export default function ExploreScreen({ navigation }) {
   const handleCreateCollection = async () => {
     if (newCollectionName.trim() === "") return
 
+    setIsCreatingCollection(true)
     try {
       const createdCollection = await createCollection(newCollectionName.trim());
       console.log("Created collections:", createdCollection);
       if (
         createdCollection.success
       ) {
-        alert("Success", createdCollection.message || "Collection created successfully")
+        Toast.success(createdCollection.message || "Collection created successfully")
         setNewCollectionName("")
         setModalVisible(false)
 
       } else {
-        alert("Error", createdCollection.message || "Failed to create collection")
+        Toast.error( createdCollection.message || "Failed to create collection")
       }
     } catch (error) {
       console.error("Error fetching collections:", error);
+    } finally {
+      setIsCreatingCollection(false)
     }
-
-
   }
 
   // Open quote detail modal
@@ -414,6 +418,7 @@ export default function ExploreScreen({ navigation }) {
     <ImageBackground source={require("../../../assets/4.jpg")} style={styles.backgroundImage}>
       <LinearGradient colors={["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0.25)"]} style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <ToastManager/>
 
         {/* Header */}
         <SafeAreaView style={styles.safeArea}>
@@ -647,11 +652,23 @@ export default function ExploreScreen({ navigation }) {
                         />
 
                         <TouchableOpacity
-                          style={[styles.saveButton, newCollectionName.trim() === "" && styles.disabledButton]}
+                          style={[
+                            styles.saveButton, 
+                            (newCollectionName.trim() === "" || isCreatingCollection) && styles.disabledButton
+                          ]}
                           onPress={handleCreateCollection}
-                          disabled={newCollectionName.trim() === ""}
+                          disabled={newCollectionName.trim() === "" || isCreatingCollection}
                         >
-                          <Text style={styles.saveButtonText}>Save</Text>
+                          {isCreatingCollection ? (
+                            <View style={styles.loadingContainer}>
+                              <ActivityIndicator size="small" color="#fff" />
+                              <Text style={[styles.saveButtonText, { marginLeft: 8 }]}>
+                                Creating...
+                              </Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.saveButtonText}>Save</Text>
+                          )}
                         </TouchableOpacity>
                       </View>
                     </SafeAreaView>
@@ -1009,5 +1026,10 @@ const styles = StyleSheet.create({
     height: 5,
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     borderRadius: 3,
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 })

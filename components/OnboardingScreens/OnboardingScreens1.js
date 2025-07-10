@@ -23,7 +23,7 @@ import { useStore } from '../../store/useStore';
 import { createAnonymous } from '../../functions/create-anonymous';
 import AdManager from '../../services/AdManager';
 import ToastManager, { Toast } from 'toastify-react-native';
-import {NotificationInitializer} from '../../services/notoficationInitializer'
+// import {NotificationInitializer} from '../../services/notoficationInitializer'
 
 
 
@@ -102,7 +102,7 @@ export default function App({ navigation }) {
         // 2. Check onboarding status
         if (getOnboarded) {
           console.log('User already onboarded, redirecting...');
-          await NotificationInitializer.initializeNotifications(navigationRef.current);
+          // await NotificationInitializer.initializeNotifications(navigationRef.current);
 
           setOnboardedTrue();
           

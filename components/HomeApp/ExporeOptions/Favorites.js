@@ -18,10 +18,13 @@ import {
   Share,
   Animated,
   Dimensions,
+  FlatList,
+  TouchableWithoutFeedback,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { getSavedQuotes,deleteSavedQuote } from "../../../functions/quotes"
+import { getUserCollections } from "../../../functions/collection"
 
 const { width, height } = Dimensions.get("window")
 
@@ -41,14 +44,47 @@ export default function QuoteDisplayScreen({ navigation }) {
         if (savedQuotes && savedQuotes.length > 0) {  
           setQuotes(savedQuotes)
         } else {  
-
           console.log("No saved quotes found")
         }
       } catch (error) {
         console.error("Error fetching saved quotes:", error)
       }
     }
+
+    // Fetch collections from the server
+    const fetchCollections = async () => {
+      try {
+        setCollectionsLoading(true)
+        const userCollections = await getUserCollections();
+        console.log("Fetched collections:", userCollections)
+        
+        if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
+          // Map the API fields to match the expected collection structure
+          const mappedCollections = userCollections.collections.map((col) => ({
+            id: col.id,
+            title: col.name,
+            count: col.quotes ? col.quotes.length : 0,
+          }));
+          setCollections(mappedCollections);
+        } else {
+          // Set default collections if none found
+          setCollections([
+            
+          ]);
+        }
+      } catch (error) {
+        console.error("Error fetching collections:", error)
+        // Set default collections on error
+        setCollections([
+         
+        ]);
+      } finally {
+        setCollectionsLoading(false)
+      }
+    }
+
     fetchSavedQuotes()
+    fetchCollections()
   }, [])
 
 
@@ -65,6 +101,13 @@ export default function QuoteDisplayScreen({ navigation }) {
   // State for quote detail modal
   const [quoteDetailVisible, setQuoteDetailVisible] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState(null)
+
+  // State for bookmark modal
+  const [bookmarkModalVisible, setBookmarkModalVisible] = useState(false)
+  const [selectedQuoteForBookmark, setSelectedQuoteForBookmark] = useState(null)
+  const [selectedCollectionId, setSelectedCollectionId] = useState(null)
+  const [collections, setCollections] = useState([])
+  const [collectionsLoading, setCollectionsLoading] = useState(true)
 
   // State for follow button
   const [isFollowing, setIsFollowing] = useState(true)
@@ -159,11 +202,83 @@ const deleteQuote = async (quoteId) => {
     )
   }
 
-  // Toggle save status for a quote
-  const toggleSave = (quoteId) => {
-    setQuotes((prevQuotes) =>
-      prevQuotes.map((quote) => (quote.id === quoteId ? { ...quote, isSaved: !quote.isSaved } : quote)),
-    )
+  // Toggle save status for a quote - now opens bookmark modal
+  const toggleSave = (quote) => {
+    setSelectedQuoteForBookmark(quote)
+    setSelectedCollectionId(null) // Reset selection
+    setBookmarkModalVisible(true)
+  }
+
+  // Add quote to collection
+  const addToCollection = async () => {
+    if (!selectedCollectionId || !selectedQuoteForBookmark) {
+      Alert.alert("Error", "Please select a collection first")
+      return
+    }
+
+    try {
+      // Here you would typically make an API call to add the quote to the collection
+      console.log(`Adding quote "${selectedQuoteForBookmark.text}" to collection ${selectedCollectionId}`)
+      
+      // Update the quote's saved status
+      setQuotes((prevQuotes) =>
+        prevQuotes.map((q) => (q.id === selectedQuoteForBookmark.id ? { ...q, isSaved: true } : q))
+      )
+      
+      // Refresh collections to update counts
+      await fetchCollections()
+      
+      // Close the modal and reset states
+      setBookmarkModalVisible(false)
+      setSelectedQuoteForBookmark(null)
+      setSelectedCollectionId(null)
+      
+      // Show success message
+      Alert.alert("Success", "Quote added to collection!")
+    } catch (error) {
+      console.error("Error adding quote to collection:", error)
+      Alert.alert("Error", "Failed to add quote to collection")
+    }
+  }
+
+  // Handle collection selection
+  const handleCollectionSelect = (collectionId) => {
+    setSelectedCollectionId(collectionId)
+  }
+
+  // Helper function to refresh collections
+  const fetchCollections = async () => {
+    try {
+      setCollectionsLoading(true)
+      const userCollections = await getUserCollections();
+      console.log("Fetched collections:", userCollections)
+      
+      if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
+        const mappedCollections = userCollections.collections.map((col) => ({
+          id: col.id,
+          title: col.name,
+          count: col.quotes ? col.quotes.length : 0,
+        }));
+        setCollections(mappedCollections);
+      } else {
+        setCollections([
+          { id: "1", title: "Motivation", count: 0 },
+          { id: "2", title: "Success", count: 0 },
+          { id: "3", title: "Happiness", count: 0 },
+          { id: "4", title: "Mindfulness", count: 0 },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching collections:", error)
+      setCollections([
+        { id: "1", title: "Motivation", count: 0 },
+        { id: "2", title: "Success", count: 0 },
+        { id: "3", title: "Happiness", count: 0 },
+        { id: "4", title: "Mindfulness", count: 0 },
+      ]);
+    } finally {
+      setCollectionsLoading(false)
+    }
   }
 
   // Toggle follow status
@@ -221,7 +336,7 @@ const deleteQuote = async (quoteId) => {
           <View style={styles.quoteFooter}>
             <Text style={styles.quoteDate}>{item.date}</Text>
             <View style={styles.quoteActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={() => toggleSave(item.id)}>
+              <TouchableOpacity style={styles.actionButton} onPress={() => toggleSave(item)}>
                 <Ionicons
                   name={item.isSaved ? "bookmark" : "bookmark-outline"}
                   size={22}
@@ -389,6 +504,113 @@ const deleteQuote = async (quoteId) => {
               </SafeAreaView>
             </LinearGradient>
           </ImageBackground>
+        </Modal>
+
+        {/* Bookmark Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={bookmarkModalVisible}
+          onRequestClose={() => setBookmarkModalVisible(false)}
+        >
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+          <View style={styles.bookmarkModalBackground}>
+            <TouchableWithoutFeedback onPress={() => setBookmarkModalVisible(false)}>
+              <View style={styles.bookmarkModalOverlay} />
+            </TouchableWithoutFeedback>
+            <View style={styles.bookmarkModalContainer}>
+              <View style={styles.bookmarkModalHandle} />
+              
+              {/* Modal Header */}
+              <View style={styles.bookmarkModalHeader}>
+                <Text style={styles.bookmarkModalTitle}>Save to Collection</Text>
+                <TouchableOpacity 
+                  onPress={() => {
+                    setBookmarkModalVisible(false)
+                    setSelectedCollectionId(null)
+                  }}
+                  style={styles.bookmarkModalCloseButton}
+                >
+                  <Ionicons name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Quote Preview */}
+              {selectedQuoteForBookmark && (
+                <View style={styles.bookmarkQuotePreview}>
+                  <Text style={styles.bookmarkQuoteText} numberOfLines={2}>
+                    "{selectedQuoteForBookmark.text}"
+                  </Text>
+                  {selectedQuoteForBookmark.author && (
+                    <Text style={styles.bookmarkQuoteAuthor}>- {selectedQuoteForBookmark.author}</Text>
+                  )}
+                </View>
+              )}
+
+              {/* Collections List */}
+              <View style={styles.bookmarkCollectionsList}>
+                <Text style={styles.bookmarkCollectionsTitle}>Choose a collection:</Text>
+                {collectionsLoading ? (
+                  <View style={styles.bookmarkLoadingContainer}>
+                    <Text style={styles.bookmarkLoadingText}>Loading collections...</Text>
+                  </View>
+                ) : collections.length === 0 ? (
+                  <View style={styles.bookmarkEmptyContainer}>
+                    <Ionicons name="folder-outline" size={32} color="#CCC" />
+                    <Text style={styles.bookmarkEmptyText}>No collections available</Text>
+                    <Text style={styles.bookmarkEmptySubText}>Create collections from the main menu to organize your quotes</Text>
+                  </View>
+                ) : (
+                  <FlatList
+                    data={collections}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[
+                          styles.bookmarkCollectionItem,
+                          selectedCollectionId === item.id && styles.bookmarkCollectionItemSelected
+                        ]}
+                        onPress={() => handleCollectionSelect(item.id)}
+                      >
+                        <View style={styles.bookmarkCollectionInfo}>
+                          <Ionicons name="folder-outline" size={20} color="#A78BFA" />
+                          <Text style={styles.bookmarkCollectionTitle}>{item.title}</Text>
+                        </View>
+                        <View style={styles.bookmarkCollectionMeta}>
+                          <Text style={styles.bookmarkCollectionCount}>{item.count} quotes</Text>
+                          {selectedCollectionId === item.id ? (
+                            <Ionicons name="checkmark-circle" size={20} color="#A78BFA" />
+                          ) : (
+                            <Ionicons name="chevron-forward" size={16} color="#999" />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                    showsVerticalScrollIndicator={false}
+                  />
+                )}
+              </View>
+
+              {/* Save Button */}
+              <View style={styles.bookmarkSaveContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.bookmarkSaveButton,
+                    !selectedCollectionId && styles.bookmarkSaveButtonDisabled
+                  ]}
+                  onPress={addToCollection}
+                  disabled={!selectedCollectionId}
+                >
+                  <Text style={[
+                    styles.bookmarkSaveButtonText,
+                    !selectedCollectionId && styles.bookmarkSaveButtonTextDisabled
+                  ]}>
+                    Save to Collection
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </Modal>
       </LinearGradient>
     </ImageBackground>
@@ -654,5 +876,168 @@ const styles = StyleSheet.create({
     height: 5,
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     borderRadius: 3,
+  },
+
+  // Bookmark Modal Styles
+  bookmarkModalBackground: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  bookmarkModalOverlay: {
+    flex: 1,
+  },
+  bookmarkModalContainer: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    maxHeight: height * 0.85,
+    minHeight: height * 0.6,
+  },
+  bookmarkModalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E5E5E5",
+    borderRadius: 2,
+    alignSelf: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  bookmarkModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  bookmarkModalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  bookmarkModalCloseButton: {
+    padding: 4,
+  },
+  bookmarkQuotePreview: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#F8F9FA",
+    marginHorizontal: 20,
+    marginVertical: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#A78BFA",
+  },
+  bookmarkQuoteText: {
+    fontSize: 16,
+    color: "#333",
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  bookmarkQuoteAuthor: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 8,
+  },
+  bookmarkCollectionsList: {
+    paddingHorizontal: 20,
+    flex: 1,
+  },
+  bookmarkCollectionsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 16,
+  },
+  bookmarkLoadingContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  bookmarkLoadingText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  bookmarkEmptyContainer: {
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  bookmarkEmptyText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#666",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  bookmarkEmptySubText: {
+    fontSize: 14,
+    color: "#999",
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  bookmarkCollectionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  bookmarkCollectionItemSelected: {
+    backgroundColor: "#F0F4FF",
+    borderColor: "#A78BFA",
+  },
+  bookmarkCollectionInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  bookmarkCollectionTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+    marginLeft: 12,
+  },
+  bookmarkCollectionMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  bookmarkCollectionCount: {
+    fontSize: 14,
+    color: "#666",
+    marginRight: 8,
+  },
+  bookmarkSaveContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+  },
+  bookmarkSaveButton: {
+    backgroundColor: "#A78BFA",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bookmarkSaveButtonDisabled: {
+    backgroundColor: "#E5E5E5",
+  },
+  bookmarkSaveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  bookmarkSaveButtonTextDisabled: {
+    color: "#999",
   },
 })
