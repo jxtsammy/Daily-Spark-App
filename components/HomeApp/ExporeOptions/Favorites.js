@@ -23,8 +23,9 @@ import {
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
-import { getSavedQuotes,deleteSavedQuote } from "../../../functions/quotes"
-import { getUserCollections } from "../../../functions/collection"
+import { getSavedQuotes, deleteSavedQuote } from "../../../functions/quotes"
+import { getUserCollections, addQuoteToCollection } from "../../../functions/collection"
+import ToastManager, {Toast} from 'toastify-react-native'
 
 const { width, height } = Dimensions.get("window")
 
@@ -38,12 +39,12 @@ export default function QuoteDisplayScreen({ navigation }) {
   useEffect(() => {
     // Fetch saved quotes from the server or local storage
     const fetchSavedQuotes = async () => {
-      try { 
+      try {
         const savedQuotes = await getSavedQuotes();
         console.log("Fetched saved quotes:", savedQuotes)
-        if (savedQuotes && savedQuotes.length > 0) {  
+        if (savedQuotes && savedQuotes.length > 0) {
           setQuotes(savedQuotes)
-        } else {  
+        } else {
           console.log("No saved quotes found")
         }
       } catch (error) {
@@ -57,7 +58,7 @@ export default function QuoteDisplayScreen({ navigation }) {
         setCollectionsLoading(true)
         const userCollections = await getUserCollections();
         console.log("Fetched collections:", userCollections)
-        
+
         if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
           // Map the API fields to match the expected collection structure
           const mappedCollections = userCollections.collections.map((col) => ({
@@ -69,14 +70,14 @@ export default function QuoteDisplayScreen({ navigation }) {
         } else {
           // Set default collections if none found
           setCollections([
-            
+
           ]);
         }
       } catch (error) {
         console.error("Error fetching collections:", error)
         // Set default collections on error
         setCollections([
-         
+
         ]);
       } finally {
         setCollectionsLoading(false)
@@ -161,21 +162,24 @@ export default function QuoteDisplayScreen({ navigation }) {
     setModalVisible(false)
   }
 
-const deleteQuote = async (quoteId) => {
-  try {
-    const result = await deleteSavedQuote(quoteId);
-    console.log("Delete result:", result)
-    if (result && result.success) {
-      setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId));
-      Alert.alert("Success", result.message || "Quote deleted successfully");
-    } else {
-      Alert.alert("Error", (result && result.message) || "Failed to delete quote");
+  const deleteQuote = async (quoteId) => {
+    try {
+      const result = await deleteSavedQuote(quoteId);
+      console.log("Delete result:", result)
+      if (result && result.success) {
+        setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId));
+        Toast.success(result.message || "Quote deleted successfully");
+      } else {
+        Toast.error( (result && result.message) || "Failed to delete quote");
+      }
+    } catch (error) {
+      Toast.error("An error occurred while deleting the quote");
+      console.error(error);
     }
-  } catch (error) {
-    Alert.alert("Error", "An error occurred while deleting the quote");
-    console.error(error);
-  }
-};
+  };
+
+
+
 
   // Delete a quote
   const handleDeleteQuote = (quoteId) => {
@@ -210,36 +214,49 @@ const deleteQuote = async (quoteId) => {
   }
 
   // Add quote to collection
-  const addToCollection = async () => {
-    if (!selectedCollectionId || !selectedQuoteForBookmark) {
-      Alert.alert("Error", "Please select a collection first")
-      return
+const addToCollection = async () => {
+  if (!selectedCollectionId || !selectedQuoteForBookmark) {
+    Toast.info("Please select a collection first");
+    return;
+  }
+
+  try {
+    console.log(`Adding quote "${selectedQuoteForBookmark.text}" to collection ${selectedCollectionId}`);
+
+    const collectionId = selectedCollectionId;
+    const quote = {
+      text: selectedQuoteForBookmark.text,
+      author: selectedQuoteForBookmark.author
+    };
+
+    const result = await addQuoteToCollection(collectionId, quote);
+    console.log("Add quote to collection result:", result);
+
+    if (result?.success) {
+      Toast.success(result.message || "Quote added successfully");
+      
+      // Wait for Toast to complete (2000ms = 2 seconds)
+      setTimeout(() => {
+        // Close modal and reset states AFTER Toast finishes
+        setBookmarkModalVisible(false);
+        setSelectedQuoteForBookmark(null);
+        setSelectedCollectionId(null);
+        
+        // Refresh collections
+        fetchCollections();
+      }, 2000); // Match this duration to your Toast's display time
+
+    } else {
+      Toast.error(result?.message || "Failed to add quote to collection");
+      // Don't close modal on error - let user retry
     }
 
-    try {
-      // Here you would typically make an API call to add the quote to the collection
-      console.log(`Adding quote "${selectedQuoteForBookmark.text}" to collection ${selectedCollectionId}`)
-      
-      // Update the quote's saved status
-      setQuotes((prevQuotes) =>
-        prevQuotes.map((q) => (q.id === selectedQuoteForBookmark.id ? { ...q, isSaved: true } : q))
-      )
-      
-      // Refresh collections to update counts
-      await fetchCollections()
-      
-      // Close the modal and reset states
-      setBookmarkModalVisible(false)
-      setSelectedQuoteForBookmark(null)
-      setSelectedCollectionId(null)
-      
-      // Show success message
-      Alert.alert("Success", "Quote added to collection!")
-    } catch (error) {
-      console.error("Error adding quote to collection:", error)
-      Alert.alert("Error", "Failed to add quote to collection")
-    }
+  } catch (error) {
+    console.error("Error adding quote to collection:", error);
+    Toast.error("Failed to add quote to collection");
+    // Keep modal open on error
   }
+};
 
   // Handle collection selection
   const handleCollectionSelect = (collectionId) => {
@@ -252,7 +269,7 @@ const deleteQuote = async (quoteId) => {
       setCollectionsLoading(true)
       const userCollections = await getUserCollections();
       console.log("Fetched collections:", userCollections)
-      
+
       if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
         const mappedCollections = userCollections.collections.map((col) => ({
           id: col.id,
@@ -372,6 +389,7 @@ const deleteQuote = async (quoteId) => {
     >
       <LinearGradient colors={["rgba(0, 0, 0, 1)", "rgba(0, 0, 0, 0.3)"]} style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <ToastManager/>
 
         {/* Header */}
         <Animated.View style={[styles.headerContainer, { opacity: headerOpacity }]}>
@@ -445,6 +463,7 @@ const deleteQuote = async (quoteId) => {
           onRequestClose={() => setQuoteDetailVisible(false)}
         >
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+          <ToastManager/>
           <ImageBackground
             // Replace this with your imported image
             source={require("../../../assets/7.jpg")}
@@ -520,11 +539,11 @@ const deleteQuote = async (quoteId) => {
             </TouchableWithoutFeedback>
             <View style={styles.bookmarkModalContainer}>
               <View style={styles.bookmarkModalHandle} />
-              
+
               {/* Modal Header */}
               <View style={styles.bookmarkModalHeader}>
                 <Text style={styles.bookmarkModalTitle}>Save to Collection</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setBookmarkModalVisible(false)
                     setSelectedCollectionId(null)

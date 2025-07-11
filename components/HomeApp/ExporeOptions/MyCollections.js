@@ -29,67 +29,7 @@ import ToastManager, {Toast} from "toastify-react-native"
 
 
 const { width, height } = Dimensions.get("window")
-// Sample data for collections
-const INITIAL_COLLECTIONS = [
-  { id: "1", title: "New" },
-  { id: "2", title: "Tgy" },
-  { id: "3", title: "Motivation" },
-  { id: "4", title: "Success" },
-  { id: "5", title: "Happiness" },
-  { id: "6", title: "Mindfulness" },
-]
 
-// Sample data for quotes in each collection
-const QUOTES_BY_COLLECTION = {
-  1: [
-    {
-      id: "101",
-      text: "Don't cry over the past, it's gone. Don't stress about the future, it hasn't arrived. Live in the present and make it beautiful.",
-      author: "",
-      date: "Fri, May 09, 2025",
-      isLiked: true,
-      isSaved: false,
-    },
-    {
-      id: "102",
-      text: "Van",
-      author: "Jwise",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-  ],
-  2: [
-    {
-      id: "201",
-      text: "The greatest glory in living lies not in never falling, but in rising every time we fall.",
-      author: "Nelson Mandela",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: true,
-    },
-  ],
-  3: [
-    {
-      id: "301",
-      text: "Believe you can and you are halfway there.",
-      author: "Theodore Roosevelt",
-      date: "Fri, May 09, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    {
-      id: "302",
-      text: "It does not matter how slowly you go as long as you do not stop.",
-      author: "Confucius",
-      date: "Sat, May 10, 2025",
-      isLiked: false,
-      isSaved: false,
-    },
-    // Add more quotes as needed
-  ],
-  // Add more collections as needed
-}
 
 export default function ExploreScreen({ navigation }) {
   // State for collections and quotes
@@ -508,7 +448,7 @@ export default function ExploreScreen({ navigation }) {
             <Animated.FlatList
               data={filteredQuotes}
               renderItem={renderQuoteItem}
-              keyExtractor={(item) => item.text}
+              keyExtractor={(item,idx) => idx}
               contentContainerStyle={styles.quotesList}
               showsVerticalScrollIndicator={false}
               onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: quotesScrollY } } }], {
