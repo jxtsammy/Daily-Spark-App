@@ -85,7 +85,6 @@ export default function App({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [showScreen, setShowScreen] = useState(false);
   const sunAnimValue = useRef(new Animated.Value(0)).current;
-   const navigationRef = useRef(null);
 
 
   useEffect(() => {
@@ -102,7 +101,7 @@ export default function App({ navigation }) {
         // 2. Check onboarding status
         if (getOnboarded) {
           console.log('User already onboarded, redirecting...');
-          await NotificationInitializer.initializeNotifications(navigationRef.current);
+          await NotificationInitializer.initializeNotifications(navigation);
 
           setOnboardedTrue();
           

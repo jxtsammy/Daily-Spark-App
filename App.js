@@ -38,6 +38,7 @@ import AddQuotes from './components/HomeApp/ExporeOptions/AddQuotes'
 import Favorites from './components/HomeApp/ExporeOptions/Favorites'
 import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
 import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
+import QuotesNotificationA from './components/HomeApp/Notifications/QuotesNotificationA';
 import * as SplashScreen from 'expo-splash-screen';
 
 import mobileAds from 'react-native-google-mobile-ads';
@@ -279,6 +280,11 @@ export default function App() {
         <Stack.Screen
           name="RecentQuotes"
           component={RecentQuotes}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="QuotesNotificationA"
+          component={QuotesNotificationA}
           options={{ headerShown: false }}
         />
         <Stack.Screen

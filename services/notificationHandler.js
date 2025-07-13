@@ -17,7 +17,6 @@ export class NotificationHandler {
         return null;
       }
       if (Platform.OS === 'android') {
-
         console.log('Setting Android notification channel');
         await Notifications.setNotificationChannelAsync('default', {
           name: 'default',
@@ -25,7 +24,6 @@ export class NotificationHandler {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
         });
-
       }
 
       console.log('Checking notification permissions');
@@ -51,8 +49,6 @@ export class NotificationHandler {
       console.error('Error getting push token:', error);
       return null;
     }
-
-
   }
 
   static async setupNotifications() {
@@ -60,22 +56,30 @@ export class NotificationHandler {
       console.log('Setting up notification handlers');
       await Notifications.setNotificationHandler({
         handleNotification: async () => ({
-          shouldShowAlert: true,
+          shouldShowBanner: true,
           shouldPlaySound: true,
           shouldSetBadge: false,
         }),
       });
 
       Notifications.addNotificationReceivedListener(notification => {
-        console.log('Notification received:', notification);
+        console.log('Full notification:', JSON.stringify(notification, null, 2));
       });
 
       Notifications.addNotificationResponseReceivedListener(response => {
         console.log('Notification response:', response);
+        console.log('Notification response data:', response.notification.request.content.data);
         const data = response.notification.request.content.data;
-        if (data?.screen && this.navigation) {
-          console.log('Navigating to screen:', data.screen);
-          this.navigation.navigate(data.screen);
+
+        if (data?.click_action === 'OPEN_QUOTE_DETAIL') {
+          // // Use the retry mechanism instead of direct navigation
+          this.navigation.navigate('QuotesNotificationA', {
+            quote: {
+              text: data.quote.text,
+              author: data.quote.author,
+              source: data.quote.source || 'Unknown',
+            }
+          });
         }
       });
     } catch (error) {
