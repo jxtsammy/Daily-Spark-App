@@ -62,29 +62,13 @@ export default function PremiumModal({ visible, onClose }) {
       // 2. Open payment URL
       await WebBrowser.openBrowserAsync(res.payload.payment_url);
 
-      // 3. Verify payment (with retry logic)
-      let verificationAttempts = 0;
-      const maxAttempts = 3;
-      let paymentResult;
-
-      while (verificationAttempts < maxAttempts) {
-        paymentResult = await VerifyPayment(res.payload.reference);
-
-        if (paymentResult.status === "success") {
-          alert("Payment verified successfully!");
-          onClose()
-          return;
-        }
-
-        verificationAttempts++;
-        if (verificationAttempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds before retrying
-        }
-      }
-
-      // If all attempts fail
-      alert("Payment verification failed. Please check your subscription status later.");
-      navigation.navigate("ManageSubscriptions");
+      // 3. Navigate to the dedicated verification screen which will poll/verify the payment.
+      // The backend can use this route as callback URL so it lands here with the `reference` param.
+      navigation.navigate('PaymentVerification', {
+        reference: res.payload.reference,
+        payment_url: res.payload.payment_url,
+      });
+      onClose();
 
     } catch (error) {
       console.error("Error in handleGoPremium:", error);

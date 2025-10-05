@@ -1,0 +1,139 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform, StatusBar, Lin } from 'react-native';
+import { VerifyPayment } from '../../functions/verify-payment';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import ToastManager, { Toast } from 'toastify-react-native';
+import {
+    Linking
+} from 'react-native';
+
+
+export default function PaymentVerification() {
+    const navigation = useNavigation();
+    const route = useRoute();
+    const { reference, payment_url } = route.params || {};
+    const [status, setStatus] = useState('pending'); // pending | success | failed
+    const attemptsRef = useRef(0);
+
+    useEffect(() => {
+        let mounted = true;
+        const maxAttempts = 6; // try a bit longer from the dedicated screen
+        const intervalMs = 3000;
+
+        if (!reference) {
+            setStatus('failed');
+            return;
+        }
+
+        const verifyOnce = async () => {
+            try {
+                const res = await VerifyPayment(reference);
+                console.log('PaymentVerification response:', res);
+                if (!mounted) return;
+
+                if (res?.status === 'success') {
+                    setStatus('success');
+                    Toast.success('Payment verified successfully');
+                    // Optionally navigate to ManageSubscriptions or Home after a short delay
+                    setTimeout(() => {
+                        navigation.replace('ManageSubscription');
+                    }, 1500);
+                    return true;
+                }
+
+                return false;
+            } catch (err) {
+                console.error('Error verifying payment on screen:', err);
+                return false;
+            }
+        };
+
+        const poll = async () => {
+            // first immediate attempt
+            let ok = await verifyOnce();
+            attemptsRef.current++;
+            if (ok) return;
+
+            const id = setInterval(async () => {
+                if (!mounted) return clearInterval(id);
+                if (attemptsRef.current >= maxAttempts) {
+                    clearInterval(id);
+                    setStatus('failed');
+                    Toast.error('Payment verification failed. Please check later.');
+                    return;
+                }
+
+                const ok2 = await verifyOnce();
+                attemptsRef.current++;
+                if (ok2) {
+                    clearInterval(id);
+                }
+            }, intervalMs);
+        };
+
+        poll();
+
+        return () => {
+            mounted = false;
+        };
+    }, [reference, navigation]);
+
+    const openPaymentUrl = async () => {
+        if (payment_url) {
+            try {
+                // open in browser using Linking to let user complete payment again
+                await Linking.openURL(payment_url);
+            } catch (err) {
+                console.error('Failed to open payment url', err);
+                Toast.error('Could not open payment URL');
+            }
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <StatusBar barStyle="light-content" />
+            <ToastManager />
+
+            <View style={styles.content}>
+                <Text style={styles.title}>Verifying payment</Text>
+                {status === 'pending' && (
+                    <>
+                        <ActivityIndicator size="large" color="#fff" style={{ marginTop: 20 }} />
+                        <Text style={styles.message}>Please wait while we verify your payment...</Text>
+                        <TouchableOpacity style={styles.button} onPress={openPaymentUrl}>
+                            <Text style={styles.buttonText}>Open payment page</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+
+                {status === 'success' && (
+                    <>
+                        <Text style={styles.success}>Payment confirmed 🎉</Text>
+                    </>
+                )}
+
+                {status === 'failed' && (
+                    <>
+                        <Text style={styles.failed}>Verification failed</Text>
+                        <Text style={styles.message}>You can try opening the payment page or check Manage Subscriptions later.</Text>
+                        <TouchableOpacity style={styles.button} onPress={() => navigation.replace('ManageSubscription')}>
+                            <Text style={styles.buttonText}>Go to Manage Subscriptions</Text>
+                        </TouchableOpacity>
+                    </>
+                )}
+            </View>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: '#222', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0 },
+    content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+    title: { color: 'white', fontSize: 22, fontWeight: 'bold' },
+    message: { color: '#A0AEC0', marginTop: 12, textAlign: 'center' },
+    success: { color: '#9AE6B4', fontSize: 20, marginTop: 20 },
+    failed: { color: '#FEB2B2', fontSize: 20, marginTop: 20 },
+    button: { marginTop: 20, backgroundColor: '#6B21A8', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 24 },
+    buttonText: { color: 'white', fontWeight: '600' },
+});
