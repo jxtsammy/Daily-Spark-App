@@ -1,35 +1,48 @@
 import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  StatusBar, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  TouchableOpacity,
   ImageBackground,
   ScrollView
 } from 'react-native';
-import { 
-  ArrowRight, 
-  Crown, 
-  BookOpen, 
-  User,  
-  UserCircle, 
-  Globe,  
-  Volume2, 
+import {
+  ArrowRight,
+  Crown,
+  BookOpen,
+  User,
+  UserCircle,
+  Globe,
+  Volume2,
   Flame,
   LogIn,
   ChevronRight,
   Smartphone
 } from 'lucide-react-native';
+import { useStore } from '../../store/useStore';
 
-export default function App({navigation}) {
+export default function App({ navigation }) {
+
+
+  const { loggedIn, resetStore } = useStore.getState();
   // Navigation handlers for each setting item
   const navigateTo = (screenName) => {
     navigation.navigate(screenName);
   };
 
+  const handleSignOut = () => {
+    resetStore();
+    navigation.navigate("Home");
+  }
+
+
+
+  console.log("Logged In", loggedIn)
+
   const renderSettingItem = (icon, title, screenName, isLast = false) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.settingItem, isLast ? styles.lastItem : null]}
       onPress={() => navigateTo(screenName)}
     >
@@ -37,38 +50,50 @@ export default function App({navigation}) {
         {icon}
         <Text style={styles.settingItemText}>{title}</Text>
       </View>
-      <ChevronRight stroke="#fff" width={20} height={20}/>
+      <ChevronRight stroke="#fff" width={20} height={20} />
     </TouchableOpacity>
   );
 
   return (
-    <View 
+    <View
       style={styles.backgroundImage}
     >
       <View style={styles.overlay}>
         <View style={styles.container}>
           <StatusBar barStyle="light-content" backgroundColor="#1E2732" />
-          
+
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
               <ArrowRight stroke="#fff" width={24} height={24} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>General</Text>
           </View>
-          
+
           <ScrollView style={styles.content}>
             {/* Premium Section */}
             <Text style={styles.sectionTitle}>PREMIUM</Text>
-            {renderSettingItem(
-              <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
-              "Manage subscription",
-              "ManageSubscription"
-            )}
-            
+
+
+            {
+              loggedIn ? (
+                renderSettingItem(
+                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Manage subscription",
+                  "ManageSubscription"
+                )
+              ) : (
+                renderSettingItem(
+                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Sign In to Manage subscription",
+                  "SignIn"
+                )
+              )
+            }
+
             {/* Make It Yours Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>MAKE IT YOURS</Text>
             {renderSettingItem(
@@ -98,19 +123,35 @@ export default function App({navigation}) {
             )}
             {renderSettingItem(
               <Smartphone stroke="#fff" width={24} height={24} style={styles.icon} />,
-              "About",
+              "About App",
               "About",
               true
             )}
-            
+
             {/* Account Section */}
             <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>ACCOUNT</Text>
-            {renderSettingItem(
-              <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />,
-              "Sign in",
-              "SignIn"
-            )}
-            
+
+            <View>
+              {loggedIn ? (
+                <TouchableOpacity
+                  style={[styles.settingItem, styles.lastItem]}
+                  onPress={() => handleSignOut()}
+                >
+                  <View style={styles.settingItemLeft}>
+                    <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />
+                    <Text style={styles.settingItemText}>Sign Out</Text>
+                  </View>
+                  <ChevronRight stroke="#fff" width={20} height={20} />
+                </TouchableOpacity>
+              ) : (
+                renderSettingItem(
+                  <LogIn stroke="#fff" width={24} height={24} style={styles.icon} />,
+                  "Sign in",
+                  "SignIn"
+                )
+              )}
+            </View>
+
             {/* Bottom padding */}
             <View style={styles.bottomPadding} />
           </ScrollView>
@@ -124,7 +165,6 @@ const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
-    backgroundColor:"#222"
   },
   overlay: {
     flex: 1,
