@@ -12,7 +12,8 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "extends": "production"
     },
     "production": {
       "autoIncrement": true

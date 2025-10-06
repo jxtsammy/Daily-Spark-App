@@ -2,7 +2,8 @@
   "expo": {
     "name": "daily-spark-app",
     "slug": "daily-spark",
-    "version": "1.0.0",
+    "scheme": "dailyspark",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
