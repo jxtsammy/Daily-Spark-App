@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform, StatusBar, Lin } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Platform, StatusBar } from 'react-native';
 import { VerifyPayment } from '../../functions/verify-payment';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import ToastManager, { Toast } from 'toastify-react-native';
-import {
-    Linking
-} from 'react-native';
+import { Linking } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 
 export default function PaymentVerification() {
@@ -16,6 +15,27 @@ export default function PaymentVerification() {
     const attemptsRef = useRef(0);
 
     useEffect(() => {
+        // listen for deep links so we can dismiss in-app browser when callback arrives
+        const onUrl = ({ url }) => {
+            try {
+                WebBrowser.dismissBrowser();
+            } catch (e) {
+                // ignore
+            }
+
+            try {
+                const parsed = new URL(url);
+                const ref = parsed.searchParams.get('reference');
+                if (ref) {
+                    // navigate to the same screen with the reference (this will trigger verification)
+                    navigation.replace('PaymentVerification', { reference: ref, payment_url });
+                }
+            } catch (e) {
+                // ignore parse errors
+            }
+        };
+
+        const subscription = Linking.addEventListener ? Linking.addEventListener('url', ({ url }) => onUrl({ url })) : Linking.addListener('url', onUrl);
         let mounted = true;
         const maxAttempts = 6; // try a bit longer from the dedicated screen
         const intervalMs = 3000;
@@ -75,6 +95,7 @@ export default function PaymentVerification() {
 
         return () => {
             mounted = false;
+            if (subscription && subscription.remove) subscription.remove();
         };
     }, [reference, navigation]);
 

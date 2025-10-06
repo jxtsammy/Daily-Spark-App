@@ -48,6 +48,16 @@ SplashScreen.preventAutoHideAsync();
 
 const Stack = createNativeStackNavigator();
 
+const linking = {
+  prefixes: ['dailyspark://'],
+  config: {
+    screens: {
+      PaymentVerification: 'PaymentVerification',
+      // add other routes if you want custom paths
+    },
+  },
+};
+
 export default function App() {
 
   const [appIsReady, setAppIsReady] = useState(false);
@@ -101,7 +111,7 @@ export default function App() {
 
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator initialRouteName="Onboarding1">
         <Stack.Screen
           name="Onboarding1"

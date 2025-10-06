@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { GetAllPlans } from '../../functions/get-all-plans';
 import { GoPremium } from '../../functions/go-premium';
 import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import { VerifyPayment } from '../../functions/verify-payment';
 
 
@@ -59,16 +60,37 @@ export default function PremiumModal({ visible, onClose }) {
         return;
       }
 
-      // 2. Open payment URL
-      await WebBrowser.openBrowserAsync(res.payload.payment_url);
+      // 2. Open payment URL using an auth session so the browser will close on redirect to our scheme.
+      try {
+        const redirectUri = AuthSession.makeRedirectUri({ scheme: 'dailyspark' });
+        const result = await WebBrowser.openAuthSessionAsync(res.payload.payment_url, redirectUri);
+        if (result.type === 'success' && result.url) {
+          try {
+            const parsed = new URL(result.url);
+            const ref = parsed.searchParams.get('reference') || res.payload.reference;
+            navigation.navigate('PaymentVerification', { reference: ref, payment_url: res.payload.payment_url });
+            onClose();
+            return;
+          } catch (e) {
+            console.error('Failed to parse redirect url', e);
+          }
+        }
 
-      // 3. Navigate to the dedicated verification screen which will poll/verify the payment.
-      // The backend can use this route as callback URL so it lands here with the `reference` param.
-      navigation.navigate('PaymentVerification', {
-        reference: res.payload.reference,
-        payment_url: res.payload.payment_url,
-      });
-      onClose();
+        // fallback: if auth session didn't return success, still navigate to the payment verification screen
+        navigation.navigate('PaymentVerification', {
+          reference: res.payload.reference,
+          payment_url: res.payload.payment_url,
+        });
+        onClose();
+      } catch (err) {
+        console.error('Auth session failed, falling back to openBrowserAsync', err);
+        await WebBrowser.openBrowserAsync(res.payload.payment_url);
+        navigation.navigate('PaymentVerification', {
+          reference: res.payload.reference,
+          payment_url: res.payload.payment_url,
+        });
+        onClose();
+      }
 
     } catch (error) {
       console.error("Error in handleGoPremium:", error);
