@@ -19,6 +19,7 @@ import Onboarding15 from './components/OnboardingScreens/OnboardingScreens15'
 import Onboarding16 from './components/OnboardingScreens/OnboardingScreens16'
 import PremiumOnbording from './components/OnboardingScreens/PremiumOnbording'
 import WidgetOnboarding from './components/OnboardingScreens/WidgetOnboarding'
+import OnboardingThemeSelection from './components/OnboardingScreens/OnboardingThemeSelection'
 import Home from './components/HomeApp/Home'
 import Settings from './components/HomeApp/SettingScreen'
 import Topics from './components/HomeApp/TopicFollowed'
@@ -196,6 +197,11 @@ export default function App() {
         <Stack.Screen
           name="PremiumOnbording"
           component={PremiumOnbording}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="OnboardingThemeSelection"
+          component={OnboardingThemeSelection}
           options={{ headerShown: false }}
         />
         <Stack.Screen

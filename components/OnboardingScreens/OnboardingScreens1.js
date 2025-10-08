@@ -114,10 +114,10 @@ export default function App({ navigation }) {
 
           // Navigate after short delay for toast
           timeoutId = setTimeout(() => {
-            if (isMounted) {
-              navigation.replace('PremiumOnbording');
-            }
-          }, 1500);
+                if (isMounted) {
+                  navigation.replace('OnboardingThemeSelection');
+                }
+              }, 1500);
         } else {
           // User needs to see onboarding
           if (isMounted) {
@@ -166,8 +166,8 @@ export default function App({ navigation }) {
   const handleContinue = async () => {
     try {
       await AdManager.showInterstitial();
-      setOnboardedTrue();
-      navigation.replace('PremiumOnbording');
+  setOnboardedTrue();
+  navigation.replace('OnboardingThemeSelection');
     } catch (error) {
       console.error('Continue error:', error);
       // Fallback if ad fails

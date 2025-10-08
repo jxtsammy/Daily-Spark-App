@@ -9,6 +9,7 @@ export const useStore = create(
         (set) => ({
             onboarded: false,
             loggedIn: false,
+            currentTheme: null,
             idToken: "",
             refreshToken: "",
             userId: "",
@@ -29,6 +30,7 @@ export const useStore = create(
             logOutUser: () => set({ loggedIn: false, user: "" }),
             setOnboardedTrue: () => set({ onboarded: true }),
             setOnboardedFalse: () => set({ onboarded: false }),
+            setCurrentTheme: (theme) => set({ currentTheme: theme }),
             resetStore: () => set({ onboarded: false, loggedIn: false, user: {}, subscriptionId: "",
                 idToken: "", refreshToken: "", userId: "", email: "", isAnonymous: true, emailVerified: false }),
             setSubscriptionId: (subscriptionId) => set({ subscriptionId })

@@ -68,7 +68,10 @@ export default function QuotesScreen({ navigation, isPremiumUser = false }) {
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [themesModalVisible, setThemesModalVisible] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState(defaultTheme);
+  // Read theme from persisted store so it's global across the app
+  const storedTheme = useStore((s) => s.currentTheme);
+  const setStoredTheme = useStore((s) => s.setCurrentTheme);
+  const currentTheme = storedTheme || defaultTheme;
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [quotes, setQuotes] = useState([]);
@@ -365,7 +368,10 @@ const handleLike = async () => {
   const togglePremiumModal = () => setPremiumModalVisible(!premiumModalVisible);
   const toggleSettingsModal = () => setSettingsModalVisible(!settingsModalVisible);
   const toggleThemesModal = () => setThemesModalVisible(!themesModalVisible);
-  const handleThemeChange = (theme) => setCurrentTheme(theme);
+  const handleThemeChange = (theme) => {
+    // persist globally
+    setStoredTheme(theme);
+  };
 
   const renderBackground = () => {
     if (currentTheme.type === "color" && !currentTheme.isGradient) {

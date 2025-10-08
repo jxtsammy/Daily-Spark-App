@@ -17,6 +17,8 @@ import { GoPremium } from '../../functions/go-premium';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { VerifyPayment } from '../../functions/verify-payment';
+import ToastManager, { Toast } from "toastify-react-native";
+
 
 
 
@@ -44,7 +46,8 @@ export default function PremiumModal({ visible, onClose }) {
 
       if (res.status === "error") {
         if (res.message === "User email not found") {
-          alert(res.message + " Please Sign In to continue");
+          Toast.error("Please Sign In to continue");
+       
           navigation.navigate("SignIn");
           onClose()
           return;
@@ -141,6 +144,9 @@ export default function PremiumModal({ visible, onClose }) {
       ]}
     >
       <View style={styles.modalContent}>
+
+        <ToastManager />
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -258,6 +264,7 @@ export default function PremiumModal({ visible, onClose }) {
           </TouchableOpacity>
         </View>
       </View>
+
     </Animated.View>
   );
 }

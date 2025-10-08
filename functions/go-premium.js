@@ -11,7 +11,7 @@ export const GoPremium = async ( planId ) => {
     return response.data;
     
   } catch (error) {
-    console.error('Error in go premium function:', {
+    console.log('Error in go premium function:', {
       error: error.message,
       userId,
       status: error.response?.status
