@@ -17,6 +17,9 @@ import Ionicons from "react-native-vector-icons/Ionicons"
 import { LinearGradient } from "expo-linear-gradient"
 import { Crown } from "lucide-react-native"
 import PremiumModal from "./PremiumModal" // Import the PremiumModal component
+import { useStore } from '../..//store/useStore'
+import { CheckActivePaidSubscriptionsBoolean } from '../../functions/check-active-paid-subscription'
+import { useEffect } from 'react'
 
 const { width, height } = Dimensions.get("window")
 
@@ -263,6 +266,29 @@ export default function TopicsScreen({ navigation, customBackgroundImage }) {
   const [topicData, setTopicData] = useState(topicSections)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [focusedTopic, setFocusedTopic] = useState("")
+  const storedTopics = useStore(s => s.topics)
+  const setStoredTopics = useStore(s => s.setTopics)
+  const toggleStoredTopic = useStore(s => s.toggleTopic)
+  const [isPremiumUser, setIsPremiumUser] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      const res = await CheckActivePaidSubscriptionsBoolean()
+      if (mounted) setIsPremiumUser(!!res)
+    })()
+
+    // initialize topic following from store
+    if (Array.isArray(storedTopics) && storedTopics.length > 0) {
+      const updated = topicSections.map(section => ({
+        ...section,
+        topics: section.topics.map(t => ({ ...t, isFollowing: storedTopics.includes(t.id) }))
+      }))
+      setTopicData(updated)
+    }
+
+    return () => { mounted = false }
+  }, [])
 
   // Handle search
   const handleSearch = (text) => {
@@ -291,8 +317,8 @@ export default function TopicsScreen({ navigation, customBackgroundImage }) {
   const toggleFollow = (sectionIndex, topicIndex) => {
     const topic = topicData[sectionIndex].topics[topicIndex]
 
-    // If premium topic, show premium modal
-    if (topic.isPremium) {
+    // If premium topic and user is not premium, show premium modal
+    if (topic.isPremium && !isPremiumUser) {
       setFocusedTopic(topic.name)
       setShowPremiumModal(true)
       return
@@ -300,9 +326,19 @@ export default function TopicsScreen({ navigation, customBackgroundImage }) {
 
     // Otherwise toggle follow status
     const updatedData = [...topicData]
-    updatedData[sectionIndex].topics[topicIndex].isFollowing = !updatedData[sectionIndex].topics[topicIndex].isFollowing
+    const newVal = !updatedData[sectionIndex].topics[topicIndex].isFollowing
+    updatedData[sectionIndex].topics[topicIndex].isFollowing = newVal
 
     setTopicData(updatedData)
+
+    // persist to store
+    if (newVal) {
+      // add
+      toggleStoredTopic(topic.id)
+    } else {
+      // remove
+      toggleStoredTopic(topic.id)
+    }
   }
 
   // Follow all topics in a section
@@ -310,10 +346,12 @@ export default function TopicsScreen({ navigation, customBackgroundImage }) {
     const updatedData = [...topicData]
     const section = updatedData[sectionIndex]
 
-    // Only update non-premium topics
+    // Update topics depending on premium access
     section.topics.forEach((topic, index) => {
-      if (!topic.isPremium) {
+      if (!topic.isPremium || isPremiumUser) {
         section.topics[index].isFollowing = true
+        // persist
+        toggleStoredTopic(topic.id)
       }
     })
 

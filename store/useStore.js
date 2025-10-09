@@ -15,6 +15,7 @@ export const useStore = create(
             refreshToken: "",
             userId: "",
             user: {},
+            topics: [],
             subscriptionId: "",
             email: "",
             isAnonymous: true,
@@ -27,6 +28,14 @@ export const useStore = create(
             setUserIsAnonymous: (isAnonymous) => ({ isAnonymous }),
             setUserId: (userId) => set({ userId }),
             setUser: (user) => set({ user }),
+            setTopics: (topics) => set({ topics }),
+            toggleTopic: (topicId) => set((state) => {
+                const exists = Array.isArray(state.topics) && state.topics.includes(topicId);
+                if (exists) {
+                    return { topics: state.topics.filter(id => id !== topicId) };
+                }
+                return { topics: [...(state.topics || []), topicId] };
+            }),
             loginUser: () => set({ loggedIn: true }),
             logOutUser: () => set({ loggedIn: false, user: "" }),
             setOnboardedTrue: () => set({ onboarded: true }),
