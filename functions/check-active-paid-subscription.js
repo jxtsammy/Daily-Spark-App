@@ -28,7 +28,7 @@ export const CheckActivePaidSubscriptionsBoolean = async () => {
         const response = await api.get('/subscriptions/my-subscription', {
             params: { userId: userId }
         });
-        console.log('Check active paid plan:', response.data);
+        console.log('Check active paid plan boolean:', response.data);
 
         if (response.data.message === 'No active subscription found' || response.data.status === 'error') {
             return false;

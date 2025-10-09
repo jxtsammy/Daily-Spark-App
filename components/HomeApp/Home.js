@@ -27,6 +27,7 @@ import Color from "color";
 import { useStore } from "../../store/useStore";
 import { CheckHasFreeTrial } from "../../functions/check-has-free-trial";
 import { getMultipleQuotes, saveQuote } from "../../functions/quotes";
+import { CheckActivePaidSubscriptionsBoolean } from "../../functions/check-active-paid-subscription";
 import ToastManager, { Toast } from "toastify-react-native";
 import AdManager from "../../services/AdManager";
 
@@ -74,6 +75,8 @@ export default function QuotesScreen({ navigation }) {
   const currentTheme = storedTheme || defaultTheme;
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [quotes, setQuotes] = useState([]);
   const [hasMoreQuotes, setHasMoreQuotes] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -201,10 +204,45 @@ export default function QuotesScreen({ navigation }) {
         await fetchQuotes();
       }
     };
-    
+
     initialize();
     return () => { isMounted = false; };
   }, [checkUserAndInitialize, fetchQuotes]);
+
+  // Clear initializing when both quotes have loaded and premium check has completed
+  useEffect(() => {
+    // isLoading is true while fetching quotes; initializing should be true until both
+    // quote load (isLoading false) and we have run the premium check (isPremiumUser !== null)
+    if (!isLoading && typeof isPremiumUser === 'boolean') {
+      setInitializing(false);
+    }
+  }, [isLoading, isPremiumUser]);
+
+  // Check premium status whenever the screen is focused / visited
+  useEffect(() => {
+    let mounted = true;
+    const checkPremium = async () => {
+      try {
+        const res = await CheckActivePaidSubscriptionsBoolean();
+        if (mounted) setIsPremiumUser(!!res);
+      } catch (e) {
+        if (mounted) setIsPremiumUser(false);
+      }
+    };
+
+    // run once on mount
+    (async () => { await checkPremium(); if (mounted) setInitializing(false); })();
+
+    // also attach a focus listener to re-check when navigating back to the screen
+    const unsubscribe = navigation.addListener('focus', () => {
+      checkPremium();
+    });
+
+    return () => {
+      mounted = false;
+      if (unsubscribe && typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [navigation]);
 
   useEffect(() => {
     if (currentTheme.type === "color" && !currentTheme.isGradient) {
@@ -227,7 +265,7 @@ const handleLike = async () => {
     
     if (isLiked) {
       setLikedQuotes(prev => prev.filter(id => id !== currentQuote.id));
-    } else if (likedQuotes.length < maxProgress) {
+    } else if (isPremiumUser || likedQuotes.length < maxProgress) {
       setLikedQuotes(prev => [...prev, currentQuote.id]);
 
       try {
@@ -254,6 +292,11 @@ const handleLike = async () => {
         console.error("Error saving quote:", error);
         Toast.error("Error saving quote.");
       }
+    }
+    else {
+      // non-premium and reached max likes
+      // open premium modal to prompt upgrade
+      setPremiumModalVisible(true);
     }
   };
   
@@ -425,12 +468,17 @@ const handleLike = async () => {
   const elementBgColor = getElementBgColor();
 
   if (isLoading && quotes.length === 0) {
+    // keep the existing behavior for incremental loads; but when initializing show full-screen loader
+  }
+
+  // Full-screen initializing loader: wait until both quotes and premium state are ready
+  if (initializing) {
     return (
       <SafeAreaView style={styles.safeArea}>
         {renderBackground()}
         <View style={[styles.container, styles.centerContent]}>
           <ActivityIndicator size="large" color={textColor} />
-          <Text style={[styles.loadingText, { color: textColor }]}>Loading quotes...</Text>
+          <Text style={[styles.loadingText, { color: textColor }]}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -464,30 +512,34 @@ const handleLike = async () => {
       
       {/* Header */}
       <View style={styles.header}>
-        <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
-          <Ionicons name="heart" size={18} color={textColor} style={{ opacity: progress > 0 ? 1 : 0.3 }} />
-          <Text style={[styles.progressText, { color: textColor }]}>
-            {progress}/{maxProgress}
-          </Text>
-          <View style={[styles.progressBar, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)" }]}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: progressWidth,
-                  backgroundColor: isDark ? "#FFFFFF" : "#000000",
-                },
-              ]}
-            />
+        {!isPremiumUser && (
+          <View style={[styles.progressContainer, { backgroundColor: elementBgColor }]}>
+            <Ionicons name="heart" size={18} color={textColor} style={{ opacity: progress > 0 ? 1 : 0.3 }} />
+            <Text style={[styles.progressText, { color: textColor }]}>
+              {progress}/{maxProgress}
+            </Text>
+            <View style={[styles.progressBar, { backgroundColor: isDark ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)" }] }>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: progressWidth,
+                    backgroundColor: isDark ? "#FFFFFF" : "#000000",
+                  },
+                ]}
+              />
+            </View>
           </View>
-        </View>
+        )}
 
-        <TouchableOpacity
-          style={[styles.crownButton, { backgroundColor: elementBgColor }]}
-          onPress={togglePremiumModal}
-        >
-          <Crown size={24} color={textColor} />
-        </TouchableOpacity>
+        {!isPremiumUser && (
+          <TouchableOpacity
+            style={[styles.crownButton, { backgroundColor: elementBgColor }]}
+            onPress={togglePremiumModal}
+          >
+            <Crown size={24} color={textColor} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Quotes ScrollView */}
