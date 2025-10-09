@@ -62,7 +62,7 @@ const getRandomBackgroundColor = () => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
-export default function QuotesScreen({ navigation, isPremiumUser = false }) {
+export default function QuotesScreen({ navigation }) {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [likedQuotes, setLikedQuotes] = useState([]);
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
@@ -554,7 +554,6 @@ const handleLike = async () => {
         onClose={toggleThemesModal}
         currentTheme={currentTheme}
         onThemeChange={handleThemeChange}
-        isPremiumUser={isPremiumUser}
       />
     </SafeAreaView>
   );

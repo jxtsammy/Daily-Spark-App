@@ -82,6 +82,7 @@ const WindowWithSun = ({ sunTranslateY }) => {
 export default function App({ navigation }) {
   const setOnboardedTrue = useStore((state) => state.setOnboardedTrue);
   const getOnboarded = useStore((state) => state.onboarded);
+  const themeSelected = useStore((state) => state.themeSelected);
   const [loading, setLoading] = useState(true);
   const [showScreen, setShowScreen] = useState(false);
   const sunAnimValue = useRef(new Animated.Value(0)).current;
@@ -115,7 +116,12 @@ export default function App({ navigation }) {
           // Navigate after short delay for toast
           timeoutId = setTimeout(() => {
                 if (isMounted) {
-                  navigation.replace('OnboardingThemeSelection');
+                  // If user hasn't selected a theme yet, send them to the theme selector once
+                  if (!themeSelected) {
+                    navigation.replace('OnboardingThemeSelection');
+                  } else {
+                    navigation.replace('PremiumOnbording');
+                  }
                 }
               }, 1500);
         } else {
@@ -166,13 +172,22 @@ export default function App({ navigation }) {
   const handleContinue = async () => {
     try {
       await AdManager.showInterstitial();
-  setOnboardedTrue();
-  navigation.replace('OnboardingThemeSelection');
+      setOnboardedTrue();
+      // If the user hasn't selected a theme yet, go to the theme selector first
+      if (!themeSelected) {
+        navigation.replace('OnboardingThemeSelection');
+      } else {
+        navigation.replace('PremiumOnbording');
+      }
     } catch (error) {
       console.error('Continue error:', error);
       // Fallback if ad fails
       setOnboardedTrue();
-      navigation.replace('PremiumOnbording');
+      if (!themeSelected) {
+        navigation.replace('OnboardingThemeSelection');
+      } else {
+        navigation.replace('PremiumOnbording');
+      }
     }
   };
 

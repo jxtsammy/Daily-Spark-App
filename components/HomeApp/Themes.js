@@ -16,6 +16,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import PremiumModal from './PremiumModal';
+import { CheckActivePaidSubscriptionsBoolean } from '../../functions/check-active-paid-subscription';
 import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
@@ -870,10 +871,26 @@ const themeMixes = [
   },
 ];
 
-export default function ThemesModal({ visible, onClose, currentTheme, onThemeChange, isPremiumUser = false }) {
+export default function ThemesModal({ visible, onClose, currentTheme, onThemeChange }) {
   const [themes, setThemes] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(currentTheme);
   const [themeChanged, setThemeChanged] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const checkPremium = async () => {
+      try {
+        const res = await CheckActivePaidSubscriptionsBoolean();
+        if (mounted) setIsPremiumUser(!!res);
+      } catch (e) {
+        console.warn('Failed to check premium status', e);
+      }
+    };
+
+    checkPremium();
+    return () => { mounted = false; };
+  }, []);
   const [activeFilter, setActiveFilter] = useState('all');
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [focusedFeature, setFocusedFeature] = useState('');

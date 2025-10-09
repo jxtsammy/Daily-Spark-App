@@ -13,6 +13,8 @@ import {
 import { ArrowLeft, Info } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import PremiumModal from './PremiumModal';
+import { CheckActivePaidSubscriptionsBoolean } from '../../functions/check-active-paid-subscription';
+import { useEffect } from 'react';
 
 // Sample reminder data
 const reminderData = [
@@ -45,9 +47,19 @@ const reminderData = [
   }
 ];
 
-export default function RemindersScreen({ navigation, isPremiumUser = false }) {
+export default function RemindersScreen({ navigation }) {
   const [reminders, setReminders] = useState(reminderData);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const res = await CheckActivePaidSubscriptionsBoolean();
+      if (mounted) setIsPremiumUser(!!res);
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // Toggle reminder enabled state
   const toggleReminder = (id) => {
