@@ -8,7 +8,9 @@ import {
   StatusBar,
   Animated,
   Easing,
-  ActivityIndicator
+  ActivityIndicator,
+  ImageBackground,
+  Image
 } from 'react-native';
 import Svg, {
   Rect,
@@ -199,7 +201,13 @@ export default function App({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#FFFFFF" />
+        <ImageBackground
+          source={require('../../assets/DailySparkLogo.jpeg')}
+          style={{ flex: 1, width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+          resizeMode="contain"
+        >
+          <ActivityIndicator size="large" color="#FFFFFF" />
+        </ImageBackground>
       </SafeAreaView>
     );
   }

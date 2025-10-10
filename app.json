@@ -5,11 +5,11 @@
     "scheme": "dailyspark",
     "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/DailySparkLogo.jpeg",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/DailySparkLogo.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -28,7 +28,7 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/DailySparkLogo.jpeg",
         "backgroundColor": "#ffffff"
       },
       "package": "com.ashdev87.dailyspark",
@@ -36,14 +36,10 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS"
-      ],
-      "notification": {
-        "icon": "./assets/splash-icon.png",
-        "color": "#ffffff"
-      }
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/DailySparkLogo.jpeg"
     },
     "owner": "ashdev87",
     "plugins": [
@@ -58,10 +54,10 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/splash-icon.png",
+          "icon": "./assets/DailySparkLogo.jpeg",
           "color": "#ffffff",
           "sounds": [],
-          "mode": "development"
+          "mode": "production"
         }
       ],
       "expo-font"
