@@ -113,9 +113,9 @@ export default function AboutScreen({ navigation }) {
               </View>
 
               <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>Ame Eze</Text>
+                <Text style={styles.profileName}>Amarachi Mbanaso</Text>
                 <Text style={styles.profileEmail}>amyeze321@gmail.com</Text>
-                <Text style={styles.profileRole}>Software Developer</Text>
+                <Text style={styles.profileRole}>CEO of Amy Mother and Childcare Foundation</Text>
               </View>
             </View>
 
@@ -147,14 +147,16 @@ export default function AboutScreen({ navigation }) {
             <View style={styles.bioSection}>
               <Text style={styles.bioTitle}>Bio</Text>
               <Text style={styles.bioText}>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
-                ea commodo consequat.
+                Amarachi Mbanaso is the Founder and CEO of Amy Mother and Childcare Foundation, a leading nonprofit organization committed to the welfare of mothers and children across the continent. With a deep passion for child protection, abuse prevention, and women’s empowerment, she has spearheaded numerous programs that provide critical support, education, and advocacy for vulnerable communities.
+
+                Under her leadership, AMCCF  has grown into a recognized force for social change, implementing initiatives that improve the lives of children and uplift women through capacity-building, mentorship, and advocacy. Amarachi’s innovative approach and unwavering dedication have earned her international recognition and multiple awards, solidifying her reputation as a transformative leader in social development.
+
+                Driven by a vision of a safer, more equitable society, Amarachi continues to champion the rights of children and women, inspiring others to join her in creating meaningful, lasting impact.
               </Text>
             </View>
 
             {/* Skills Section */}
-            <View style={styles.bioSection}>
+            {/* <View style={styles.bioSection}>
               <Text style={styles.bioTitle}>Skills</Text>
               <View style={styles.skillsContainer}>
                 {["JavaScript", "React Native", "Node.js", "UI/UX Design", "Python"].map((skill, index) => (
@@ -163,7 +165,7 @@ export default function AboutScreen({ navigation }) {
                   </View>
                 ))}
               </View>
-            </View>
+            </View> */}
           </ScrollView>
         </SafeAreaView>
       </View>
