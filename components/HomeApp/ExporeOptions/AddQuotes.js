@@ -20,15 +20,32 @@ import {
   ImageBackground,
   Alert,
   Share,
+  Animated,
+  ActivityIndicator,
+  RefreshControl,
+  Dimensions,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+const { width, height } = Dimensions.get("window")
+
+const STORAGE_KEY = 'my_quotes_data'
 
 export default function MyOwnQuotesScreen({ navigation }) {
   // State for quotes
   const [quotes, setQuotes] = useState([])
   const [filteredQuotes, setFilteredQuotes] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+
+  // Loading states
+  const [loading, setLoading] = useState({
+    initial: true,
+    saving: false,
+    deleting: false,
+    refreshing: false
+  })
 
   // State for modal
   const [modalVisible, setModalVisible] = useState(false)
@@ -46,6 +63,83 @@ export default function MyOwnQuotesScreen({ navigation }) {
   const [quoteDetailVisible, setQuoteDetailVisible] = useState(false)
   const [selectedQuote, setSelectedQuote] = useState(null)
 
+  // Animation values
+  const pulseAnim = useState(new Animated.Value(1))[0]
+  const fadeAnim = useState(new Animated.Value(0))[0]
+
+  // Load quotes from local storage on component mount
+  useEffect(() => {
+    loadQuotesFromStorage()
+  }, [])
+
+  // Pulse animation for loading states
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        })
+      ])
+    );
+    
+    if (loading.initial) {
+      pulse.start();
+      // Fade in content after load
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      pulse.stop();
+      pulseAnim.setValue(1);
+    }
+
+    return () => pulse.stop();
+  }, [loading.initial]);
+
+  // Load quotes from AsyncStorage
+  const loadQuotesFromStorage = async () => {
+    try {
+      setLoading(prev => ({ ...prev, initial: true }))
+      const storedData = await AsyncStorage.getItem(STORAGE_KEY)
+      
+      if (storedData) {
+        const data = JSON.parse(storedData)
+        setQuotes(data.quotes || [])
+        setLikedQuotes(data.likedQuotes || {})
+        setSavedQuotes(data.savedQuotes || {})
+      }
+    } catch (error) {
+      console.error('Error loading quotes from storage:', error)
+    } finally {
+      setLoading(prev => ({ ...prev, initial: false }))
+    }
+  }
+
+  // Save quotes to AsyncStorage
+  const saveQuotesToStorage = async (updatedQuotes, updatedLikes = likedQuotes, updatedSaves = savedQuotes) => {
+    try {
+      const dataToStore = {
+        quotes: updatedQuotes,
+        likedQuotes: updatedLikes,
+        savedQuotes: updatedSaves,
+        lastUpdated: new Date().toISOString()
+      }
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(dataToStore))
+    } catch (error) {
+      console.error('Error saving quotes to storage:', error)
+      throw error
+    }
+  }
+
   // Filter quotes based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -54,39 +148,58 @@ export default function MyOwnQuotesScreen({ navigation }) {
       const filtered = quotes.filter(
         (quote) =>
           quote.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          quote.author.toLowerCase().includes(searchQuery.toLowerCase()),
+          (quote.author && quote.author.toLowerCase().includes(searchQuery.toLowerCase())),
       )
       setFilteredQuotes(filtered)
     }
   }, [searchQuery, quotes])
 
   // Add a new quote
-  const handleAddQuote = () => {
+  const handleAddQuote = async () => {
     if (newQuote.trim() === "") return
 
-    const currentDate = new Date()
-    const formattedDate = currentDate.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+    setLoading(prev => ({ ...prev, saving: true }))
 
-    const newQuoteObj = {
-      id: Date.now().toString(),
-      text: newQuote,
-      author: newAuthor.trim() === "" ? "Anonymous" : newAuthor,
-      date: formattedDate,
+    try {
+      const currentDate = new Date()
+      const formattedDate = currentDate.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+
+      const newQuoteObj = {
+        id: Date.now().toString(),
+        text: newQuote.trim(),
+        author: newAuthor.trim() === "" ? "Anonymous" : newAuthor.trim(),
+        date: formattedDate,
+        createdAt: new Date().toISOString()
+      }
+
+      const updatedQuotes = [newQuoteObj, ...quotes]
+      setQuotes(updatedQuotes)
+      
+      // Save to storage
+      await saveQuotesToStorage(updatedQuotes)
+      
+      setNewQuote("")
+      setNewAuthor("")
+      setModalVisible(false)
+      
+      // Show success feedback
+      Alert.alert("Success", "Quote added successfully!")
+      
+    } catch (error) {
+      console.error('Error adding quote:', error)
+      Alert.alert("Error", "Failed to save quote. Please try again.")
+    } finally {
+      setLoading(prev => ({ ...prev, saving: false }))
     }
-
-    setQuotes((prevQuotes) => [newQuoteObj, ...prevQuotes])
-    setNewQuote("")
-    setNewAuthor("")
-    setModalVisible(false)
   }
 
   // Delete a quote
-  const handleDeleteQuote = (quoteId) => {
+  const handleDeleteQuote = async (quoteId) => {
     Alert.alert("Delete Quote", "Are you sure you want to delete this quote?", [
       {
         text: "Cancel",
@@ -94,32 +207,74 @@ export default function MyOwnQuotesScreen({ navigation }) {
       },
       {
         text: "Delete",
-        onPress: () => {
-          setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId))
-          // If the deleted quote is currently selected in the modal, close the modal
-          if (selectedQuote && selectedQuote.id === quoteId) {
-            setQuoteDetailVisible(false)
-          }
-        },
+        onPress: () => deleteQuote(quoteId),
         style: "destructive",
       },
     ])
   }
 
+  const deleteQuote = async (quoteId) => {
+    try {
+      setLoading(prev => ({ ...prev, deleting: true }))
+      
+      const updatedQuotes = quotes.filter((quote) => quote.id !== quoteId)
+      setQuotes(updatedQuotes)
+      
+      // Remove from liked and saved states
+      const updatedLikes = { ...likedQuotes }
+      const updatedSaves = { ...savedQuotes }
+      delete updatedLikes[quoteId]
+      delete updatedSaves[quoteId]
+      
+      setLikedQuotes(updatedLikes)
+      setSavedQuotes(updatedSaves)
+      
+      // Save to storage
+      await saveQuotesToStorage(updatedQuotes, updatedLikes, updatedSaves)
+      
+      // If the deleted quote is currently selected in the modal, close the modal
+      if (selectedQuote && selectedQuote.id === quoteId) {
+        setQuoteDetailVisible(false)
+      }
+      
+    } catch (error) {
+      console.error('Error deleting quote:', error)
+      Alert.alert("Error", "Failed to delete quote. Please try again.")
+    } finally {
+      setLoading(prev => ({ ...prev, deleting: false }))
+    }
+  }
+
   // Toggle like status for a quote
-  const toggleLike = (quoteId) => {
-    setLikedQuotes((prev) => ({
-      ...prev,
-      [quoteId]: !prev[quoteId],
-    }))
+  const toggleLike = async (quoteId) => {
+    try {
+      const updatedLikes = {
+        ...likedQuotes,
+        [quoteId]: !likedQuotes[quoteId],
+      }
+      setLikedQuotes(updatedLikes)
+      
+      // Save to storage
+      await saveQuotesToStorage(quotes, updatedLikes, savedQuotes)
+    } catch (error) {
+      console.error('Error toggling like:', error)
+    }
   }
 
   // Toggle save status for a quote
-  const toggleSave = (quoteId) => {
-    setSavedQuotes((prev) => ({
-      ...prev,
-      [quoteId]: !prev[quoteId],
-    }))
+  const toggleSave = async (quoteId) => {
+    try {
+      const updatedSaves = {
+        ...savedQuotes,
+        [quoteId]: !savedQuotes[quoteId],
+      }
+      setSavedQuotes(updatedSaves)
+      
+      // Save to storage
+      await saveQuotesToStorage(quotes, likedQuotes, updatedSaves)
+    } catch (error) {
+      console.error('Error toggling save:', error)
+    }
   }
 
   // Toggle follow status
@@ -145,14 +300,61 @@ export default function MyOwnQuotesScreen({ navigation }) {
     setQuoteDetailVisible(true)
   }
 
+  // Pull to refresh
+  const onRefresh = () => {
+    setLoading(prev => ({ ...prev, refreshing: true }))
+    // Simulate refresh - in real app, this might fetch from server
+    setTimeout(() => {
+      setLoading(prev => ({ ...prev, refreshing: false }))
+    }, 1000)
+  }
+
+  // Render loading skeleton for quotes
+  const renderQuoteSkeleton = ({ index }) => (
+    <Animated.View
+      style={[
+        styles.quoteCard,
+        { 
+          transform: [{ scale: pulseAnim }],
+          opacity: pulseAnim.interpolate({
+            inputRange: [1, 1.1],
+            outputRange: [0.7, 1]
+          })
+        }
+      ]}
+    >
+      <View style={styles.skeletonContent}>
+        <View style={[styles.skeletonLine, { height: 16, marginBottom: 8 }]} />
+        <View style={[styles.skeletonLine, { height: 16, marginBottom: 8 }]} />
+        <View style={[styles.skeletonLine, { width: '80%', height: 16 }]} />
+      </View>
+      <View style={styles.skeletonFooter}>
+        <View style={[styles.skeletonLine, { width: '30%', height: 12 }]} />
+        <View style={styles.skeletonActions}>
+          <View style={[styles.skeletonAction, { width: 30 }]} />
+          <View style={[styles.skeletonAction, { width: 30 }]} />
+          <View style={[styles.skeletonAction, { width: 30 }]} />
+        </View>
+      </View>
+    </Animated.View>
+  )
+
   // Render a quote item
   const renderQuoteItem = ({ item }) => (
     <TouchableOpacity activeOpacity={0.8} onPress={() => openQuoteDetail(item)}>
-      <View style={styles.quoteCard}>
+      <Animated.View style={[styles.quoteCard, { opacity: fadeAnim }]}>
         <View style={styles.quoteHeader}>
           <Text style={styles.quoteText}>{item.text}</Text>
-          <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteQuote(item.id)}>
-            <Ionicons name="trash-outline" size={20} color="#fff" />
+          <TouchableOpacity 
+            style={styles.deleteButton} 
+            onPress={() => handleDeleteQuote(item.id)}
+            disabled={loading.deleting}
+          >
+            {loading.deleting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="trash-outline" size={20} color="#fff" />
+            )}
           </TouchableOpacity>
         </View>
         <Text style={styles.quoteAuthor}>- {item.author}</Text>
@@ -178,13 +380,26 @@ export default function MyOwnQuotesScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Animated.View>
     </TouchableOpacity>
+  )
+
+  // Empty state component
+  const EmptyState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="create-outline" size={64} color="rgba(255,255,255,0.3)" />
+      <Text style={styles.emptyStateTitle}>No quotes yet</Text>
+      <Text style={styles.emptyStateText}>
+        Create your own inspirational quotes and save them here for daily motivation.
+      </Text>
+      <TouchableOpacity style={styles.emptyStateButton} onPress={() => setModalVisible(true)}>
+        <Text style={styles.emptyStateButtonText}>Create Your First Quote</Text>
+      </TouchableOpacity>
+    </View>
   )
 
   return (
     <ImageBackground
-      // Replace this with your actual background image
       source={require("../../../assets/1.jpg")}
       style={styles.backgroundImage}
     >
@@ -198,7 +413,12 @@ export default function MyOwnQuotesScreen({ navigation }) {
               <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="chevron-back" size={28} color="white" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>My Quotes</Text>
+              <View>
+                <Text style={styles.headerTitle}>My Quotes</Text>
+                {loading.initial && (
+                  <Text style={styles.headerSubtitle}>Loading your quotes...</Text>
+                )}
+              </View>
             </View>
             <TouchableOpacity
               style={[styles.followButton, isFollowing && styles.followingButton]}
@@ -210,7 +430,7 @@ export default function MyOwnQuotesScreen({ navigation }) {
                 color="white"
                 style={styles.followIcon}
               />
-              <Text style={styles.followButtonText}>{isFollowing ? "Following" : "Follow"}</Text>
+              <Text style={styles.followButtonText}>{isFollowing ? "Private" : "Public"}</Text>
             </TouchableOpacity>
           </View>
 
@@ -219,8 +439,8 @@ export default function MyOwnQuotesScreen({ navigation }) {
             <Ionicons name="search" size={20} color="#ccc" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search"
-              placeholderTextColor="#cccc"
+              placeholder="Search your quotes..."
+              placeholderTextColor="#ccc"
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -232,27 +452,58 @@ export default function MyOwnQuotesScreen({ navigation }) {
           </View>
 
           {/* Quotes List */}
-          {filteredQuotes.length > 0 ? (
+          {loading.initial ? (
+            <FlatList
+              data={[1, 2, 3, 4, 5]} // Dummy data for skeleton
+              renderItem={renderQuoteSkeleton}
+              keyExtractor={(item, index) => `skeleton-${index}`}
+              contentContainerStyle={styles.quotesList}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : filteredQuotes.length > 0 ? (
             <FlatList
               data={filteredQuotes}
               renderItem={renderQuoteItem}
               keyExtractor={(item) => item.id}
               contentContainerStyle={styles.quotesList}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={loading.refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#fff"
+                  colors={["#fff"]}
+                />
+              }
+              ListEmptyComponent={
+                searchQuery.length > 0 ? (
+                  <View style={styles.noResults}>
+                    <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.3)" />
+                    <Text style={styles.noResultsText}>No quotes found for "{searchQuery}"</Text>
+                    <Text style={styles.noResultsSubtext}>Try different keywords</Text>
+                  </View>
+                ) : null
+              }
             />
           ) : (
-            <ScrollView style={styles.content}>
-              <View style={styles.emptyState}>
-                <Ionicons name="create-outline" size={64} color="rgba(255,255,255,0.3)" />
-                <Text style={styles.emptyStateTitle}>No quotes yet</Text>
-                <Text style={styles.emptyStateText}>
-                  Create your own inspirational quotes and save them here for daily motivation.
-                </Text>
-              </View>
+            <ScrollView 
+              style={styles.content}
+              refreshControl={
+                <RefreshControl
+                  refreshing={loading.refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="#fff"
+                  colors={["#fff"]}
+                />
+              }
+            >
+              <EmptyState />
             </ScrollView>
           )}
 
           {/* Add Quote Button */}
           <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+            <Ionicons name="add" size={24} color="#1E2A38" />
             <Text style={styles.addButtonText}>Add quote</Text>
           </TouchableOpacity>
         </SafeAreaView>
@@ -266,51 +517,81 @@ export default function MyOwnQuotesScreen({ navigation }) {
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                {/* Modal Header */}
-                <View style={styles.modalHeader}>
-                  <TouchableOpacity style={styles.modalBackButton} onPress={() => setModalVisible(false)}>
-                    <Ionicons name="chevron-back" size={28} color="white" />
-                  </TouchableOpacity>
-                  <Text style={styles.modalTitle}>Add Quote</Text>
-                  <View style={styles.modalHeaderRight} />
-                </View>
+              <ImageBackground
+                source={require("../../../assets/1.jpg")}
+                style={styles.modalBackground}
+              >
+                <LinearGradient colors={["rgba(0, 0, 0, 0.9)", "rgba(0, 0, 0, 0.7)"]} style={styles.modalOverlay}>
+                  <View style={styles.modalContent}>
+                    {/* Modal Header */}
+                    <SafeAreaView style={styles.modalSafeArea}>
+                      <View style={styles.modalHeader}>
+                        <TouchableOpacity style={styles.modalBackButton} onPress={() => setModalVisible(false)}>
+                          <Ionicons name="chevron-back" size={28} color="white" />
+                          <Text style={styles.modalBackText}>Back</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.modalTitle}>Add Quote</Text>
+                        <View style={styles.modalHeaderRight} />
+                      </View>
 
-                {/* Modal Description */}
-                <Text style={styles.modalDescription}>Add your own quote. It will only be visible to you.</Text>
+                      {/* Modal Body */}
+                      <View style={styles.modalBody}>
+                        <Text style={styles.modalDescription}>Add your own quote. It will only be visible to you.</Text>
 
-                {/* Quote Input */}
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.quoteInput}
-                    placeholder="Quote"
-                    placeholderTextColor="#ccc"
-                    multiline
-                    value={newQuote}
-                    onChangeText={setNewQuote}
-                  />
-                </View>
+                        {/* Quote Input */}
+                        <View style={styles.inputContainer}>
+                          <Text style={styles.inputLabel}>Your Quote *</Text>
+                          <TextInput
+                            style={styles.quoteInput}
+                            placeholder="Enter your inspirational quote..."
+                            placeholderTextColor="#8D9CB0"
+                            multiline
+                            value={newQuote}
+                            onChangeText={setNewQuote}
+                            maxLength={500}
+                          />
+                          <Text style={styles.charCount}>{newQuote.length}/500</Text>
+                        </View>
 
-                {/* Author Input */}
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.authorInput}
-                    placeholder="Author (optional)"
-                    placeholderTextColor="#ccc"
-                    value={newAuthor}
-                    onChangeText={setNewAuthor}
-                  />
-                </View>
+                        {/* Author Input */}
+                        <View style={styles.inputContainer}>
+                          <Text style={styles.inputLabel}>Author (optional)</Text>
+                          <TextInput
+                            style={styles.authorInput}
+                            placeholder="Who said this? Leave blank for Anonymous"
+                            placeholderTextColor="#8D9CB0"
+                            value={newAuthor}
+                            onChangeText={setNewAuthor}
+                            maxLength={100}
+                          />
+                          <Text style={styles.charCount}>{newAuthor.length}/100</Text>
+                        </View>
 
-                {/* Save Button */}
-                <TouchableOpacity
-                  style={[styles.saveButton, newQuote.trim() === "" && styles.disabledButton]}
-                  onPress={handleAddQuote}
-                  disabled={newQuote.trim() === ""}
-                >
-                  <Text style={styles.saveButtonText}>Save</Text>
-                </TouchableOpacity>
-              </View>
+                        {/* Save Button */}
+                        <TouchableOpacity
+                          style={[
+                            styles.saveButton, 
+                            (newQuote.trim() === "" || loading.saving) && styles.disabledButton
+                          ]}
+                          onPress={handleAddQuote}
+                          disabled={newQuote.trim() === "" || loading.saving}
+                        >
+                          {loading.saving ? (
+                            <View style={styles.loadingContainer}>
+                              <ActivityIndicator size="small" color="#fff" />
+                              <Text style={[styles.saveButtonText, { marginLeft: 8 }]}>
+                                Saving...
+                              </Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.saveButtonText}>Save Quote</Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </SafeAreaView>
+                  </View>
+                </LinearGradient>
+              </ImageBackground>
             </KeyboardAvoidingView>
           </TouchableWithoutFeedback>
         </Modal>
@@ -324,7 +605,6 @@ export default function MyOwnQuotesScreen({ navigation }) {
         >
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
           <ImageBackground
-            // Replace this with your imported image
             source={require("../../../assets/11.jpg")}
             style={styles.detailModalBackground}
             resizeMode="cover"
@@ -347,15 +627,16 @@ export default function MyOwnQuotesScreen({ navigation }) {
                       color="white"
                       style={styles.followIcon}
                     />
-                    <Text style={styles.detailModalFollowButtonText}>{isFollowing ? "Following" : "Follow"}</Text>
+                    <Text style={styles.detailModalFollowButtonText}>{isFollowing ? "Private" : "Public"}</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* Quote Content */}
                 {selectedQuote && (
                   <View style={styles.detailModalQuoteContainer}>
-                    <Text style={styles.detailModalQuoteText}>{selectedQuote.text}</Text>
+                    <Text style={styles.detailModalQuoteText}>"{selectedQuote.text}"</Text>
                     <Text style={styles.detailModalAuthorText}>- {selectedQuote.author}</Text>
+                    <Text style={styles.detailModalDate}>{selectedQuote.date}</Text>
                   </View>
                 )}
 
@@ -446,6 +727,12 @@ const styles = StyleSheet.create({
     color: "white",
     marginLeft: 5,
   },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    marginLeft: 5,
+    marginTop: 2,
+  },
   followButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -457,7 +744,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   followingButton: {
-    backgroundColor: "rgba(167, 139, 250, 0)",
+    backgroundColor: "rgba(167, 139, 250, 0.3)",
     borderColor: "rgba(167, 139, 250, 0.5)",
   },
   followIcon: {
@@ -503,6 +790,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   quoteHeader: {
     flexDirection: "row",
@@ -518,12 +807,17 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 4,
+    minWidth: 28,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quoteAuthor: {
     fontSize: 16,
     color: "#fff",
     marginTop: 8,
     marginBottom: 12,
+    fontStyle: 'italic',
   },
   quoteFooter: {
     flexDirection: "row",
@@ -533,7 +827,7 @@ const styles = StyleSheet.create({
   },
   quoteDate: {
     fontSize: 14,
-    color: "#fff",
+    color: "rgba(255,255,255,0.7)",
   },
   quoteActions: {
     flexDirection: "row",
@@ -561,6 +855,19 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.7)",
     textAlign: "center",
     lineHeight: 24,
+    marginBottom: 30,
+  },
+  emptyStateButton: {
+    backgroundColor: "white",
+    borderRadius: 30,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    alignItems: "center",
+  },
+  emptyStateButtonText: {
+    color: "#1E2A38",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   addButton: {
     backgroundColor: "white",
@@ -569,33 +876,107 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 30,
     alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   addButtonText: {
     color: "#1E2A38",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
+  },
+  noResults: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    flex: 1,
+  },
+  noResultsText: {
+    fontSize: 18,
+    color: "white",
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+  },
+
+  // Skeleton Loading Styles
+  skeletonContent: {
+    flex: 1,
+  },
+  skeletonLine: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  skeletonFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  skeletonActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  skeletonAction: {
+    height: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 11,
+    marginLeft: 12,
   },
 
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: "#222", // Keep the solid background for the modal
+  },
+  modalBackground: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
+  modalOverlay: {
+    flex: 1,
   },
   modalContent: {
+    flex: 1,
+  },
+  modalSafeArea: {
     flex: 1,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   modalHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 10,
-    paddingTop: 70,
   },
   modalBackButton: {
     flexDirection: "row",
     alignItems: "center",
     padding: 5,
+  },
+  modalBackText: {
+    color: "white",
+    fontSize: 16,
+    marginLeft: 4,
   },
   modalTitle: {
     fontSize: 24,
@@ -603,51 +984,83 @@ const styles = StyleSheet.create({
     color: "white",
   },
   modalHeaderRight: {
-    width: 60, // To balance the header
+    width: 60,
+  },
+  modalBody: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 20,
   },
   modalDescription: {
     fontSize: 16,
-    color: "white",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 24,
+    color: "rgba(255,255,255,0.8)",
+    marginBottom: 30,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   inputContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 12,
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "white",
+    marginBottom: 8,
   },
   quoteInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
     color: "white",
     fontSize: 16,
-    paddingVertical: 12,
-    minHeight: 100,
+    padding: 16,
+    minHeight: 120,
     textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
   },
   authorInput: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
     color: "white",
     fontSize: 16,
-    paddingVertical: 12,
-    height: 44,
+    padding: 16,
+    height: 50,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  charCount: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.5)",
+    textAlign: 'right',
+    marginTop: 4,
   },
   saveButton: {
     backgroundColor: "#fff",
     borderRadius: 30,
     paddingVertical: 16,
-    marginHorizontal: 16,
-    marginTop: 400,
     alignItems: "center",
-    bottom: 0,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   disabledButton: {
-    opacity: 1,
+    opacity: 0.6,
   },
   saveButtonText: {
     color: "#222",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // Quote Detail Modal Styles
@@ -707,18 +1120,26 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     lineHeight: 38,
+    fontStyle: 'italic',
   },
   detailModalAuthorText: {
-    fontSize: 18,
-    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 20,
+    color: "rgba(255, 255, 255, 0.9)",
     marginTop: 20,
+    textAlign: "center",
+    fontWeight: '500',
+  },
+  detailModalDate: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.6)",
+    marginTop: 10,
     textAlign: "center",
   },
   detailModalActionButtons: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   detailModalActionButton: {
     width: 60,

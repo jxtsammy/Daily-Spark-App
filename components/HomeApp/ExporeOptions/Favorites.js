@@ -1,7 +1,7 @@
 "use client"
 
 // QuoteDisplayScreen.js
-import { useState, useEffect, useRef, use } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import {
   Dimensions,
   FlatList,
   TouchableWithoutFeedback,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
@@ -30,74 +32,19 @@ import ToastManager, {Toast} from 'toastify-react-native'
 const { width, height } = Dimensions.get("window")
 
 export default function QuoteDisplayScreen({ navigation }) {
-
   // State for quotes
-  const [quotes, setQuotes] = useState([
-  ])
-
-
-  useEffect(() => {
-    // Fetch saved quotes from the server or local storage
-    const fetchSavedQuotes = async () => {
-      try {
-        const savedQuotes = await getSavedQuotes();
-        console.log("Fetched saved quotes:", savedQuotes)
-        if (savedQuotes && savedQuotes.length > 0) {
-          setQuotes(savedQuotes)
-        } else {
-          console.log("No saved quotes found")
-        }
-      } catch (error) {
-        console.error("Error fetching saved quotes:", error)
-      }
-    }
-
-    // Fetch collections from the server
-    const fetchCollections = async () => {
-      try {
-        setCollectionsLoading(true)
-        const userCollections = await getUserCollections();
-        console.log("Fetched collections:", userCollections)
-
-        if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
-          // Map the API fields to match the expected collection structure
-          const mappedCollections = userCollections.collections.map((col) => ({
-            id: col.id,
-            title: col.name,
-            count: col.quotes ? col.quotes.length : 0,
-          }));
-          setCollections(mappedCollections);
-        } else {
-          // Set default collections if none found
-          setCollections([
-
-          ]);
-        }
-      } catch (error) {
-        console.error("Error fetching collections:", error)
-        // Set default collections on error
-        setCollections([
-
-        ]);
-      } finally {
-        setCollectionsLoading(false)
-      }
-    }
-
-    fetchSavedQuotes()
-    fetchCollections()
-  }, [])
-
-
-
-
+  const [quotes, setQuotes] = useState([])
   const [filteredQuotes, setFilteredQuotes] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
 
-  // State for add quote modal
-  const [modalVisible, setModalVisible] = useState(false)
-  const [newQuote, setNewQuote] = useState("")
-  const [newAuthor, setNewAuthor] = useState("")
+  // Loading states
+  const [loading, setLoading] = useState({
+    quotes: true,
+    collections: false,
+    addingToCollection: false,
+    deleting: false,
+    refreshing: false
+  })
 
   // State for quote detail modal
   const [quoteDetailVisible, setQuoteDetailVisible] = useState(false)
@@ -108,7 +55,6 @@ export default function QuoteDisplayScreen({ navigation }) {
   const [selectedQuoteForBookmark, setSelectedQuoteForBookmark] = useState(null)
   const [selectedCollectionId, setSelectedCollectionId] = useState(null)
   const [collections, setCollections] = useState([])
-  const [collectionsLoading, setCollectionsLoading] = useState(true)
 
   // State for follow button
   const [isFollowing, setIsFollowing] = useState(true)
@@ -120,6 +66,92 @@ export default function QuoteDisplayScreen({ navigation }) {
     outputRange: [1, 0.9],
     extrapolate: "clamp",
   })
+  const pulseAnim = useRef(new Animated.Value(1)).current
+
+  // Pulse animation for loading states
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        })
+      ])
+    );
+    
+    if (loading.quotes) {
+      pulse.start();
+    } else {
+      pulse.stop();
+      pulseAnim.setValue(1);
+    }
+
+    return () => pulse.stop();
+  }, [loading.quotes]);
+
+  // Fetch saved quotes
+  const fetchSavedQuotes = async (isRefreshing = false) => {
+    try {
+      if (!isRefreshing) {
+        setLoading(prev => ({ ...prev, quotes: true }))
+      }
+      
+      const savedQuotes = await getSavedQuotes();
+      console.log("Fetched saved quotes:", savedQuotes)
+      
+      if (savedQuotes && savedQuotes.length > 0) {
+        setQuotes(savedQuotes)
+      } else {
+        setQuotes([])
+        console.log("No saved quotes found")
+      }
+    } catch (error) {
+      console.error("Error fetching saved quotes:", error)
+      Toast.error("Failed to load quotes")
+    } finally {
+      setLoading(prev => ({ 
+        ...prev, 
+        quotes: false,
+        refreshing: false 
+      }))
+    }
+  }
+
+  // Fetch collections
+  const fetchCollections = async () => {
+    try {
+      setLoading(prev => ({ ...prev, collections: true }))
+      const userCollections = await getUserCollections();
+      console.log("Fetched collections:", userCollections)
+
+      if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
+        const mappedCollections = userCollections.collections.map((col) => ({
+          id: col.id,
+          title: col.name,
+          count: col.quotes ? col.quotes.length : 0,
+        }));
+        setCollections(mappedCollections);
+      } else {
+        setCollections([])
+      }
+    } catch (error) {
+      console.error("Error fetching collections:", error)
+      setCollections([])
+    } finally {
+      setLoading(prev => ({ ...prev, collections: false }))
+    }
+  }
+
+  useEffect(() => {
+    fetchSavedQuotes()
+    fetchCollections()
+  }, [])
 
   // Filter quotes based on search query
   useEffect(() => {
@@ -135,53 +167,28 @@ export default function QuoteDisplayScreen({ navigation }) {
     }
   }, [searchQuery, quotes])
 
-  // Add a new quote
-  const handleAddQuote = () => {
-    if (newQuote.trim() === "") return
-
-    const currentDate = new Date()
-    const formattedDate = currentDate.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-
-    const newQuoteObj = {
-      id: Date.now().toString(),
-      text: newQuote,
-      author: newAuthor.trim() === "" ? "" : newAuthor,
-      date: formattedDate,
-      isLiked: false,
-      isSaved: false,
-    }
-
-    setQuotes((prevQuotes) => [newQuoteObj, ...prevQuotes])
-    setNewQuote("")
-    setNewAuthor("")
-    setModalVisible(false)
-  }
-
+  // Delete a quote
   const deleteQuote = async (quoteId) => {
     try {
+      setLoading(prev => ({ ...prev, deleting: true }))
       const result = await deleteSavedQuote(quoteId);
       console.log("Delete result:", result)
+      
       if (result && result.success) {
         setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId));
         Toast.success(result.message || "Quote deleted successfully");
       } else {
-        Toast.error( (result && result.message) || "Failed to delete quote");
+        Toast.error((result && result.message) || "Failed to delete quote");
       }
     } catch (error) {
       Toast.error("An error occurred while deleting the quote");
       console.error(error);
+    } finally {
+      setLoading(prev => ({ ...prev, deleting: false }))
     }
   };
 
-
-
-
-  // Delete a quote
+  // Handle delete quote confirmation
   const handleDeleteQuote = (quoteId) => {
     Alert.alert("Delete Quote", "Are you sure you want to delete this quote?", [
       {
@@ -190,10 +197,7 @@ export default function QuoteDisplayScreen({ navigation }) {
       },
       {
         text: "Delete",
-        onPress: () => {
-          setQuotes((prevQuotes) => prevQuotes.filter((quote) => quote.id !== quoteId))
-          deleteQuote(quoteId)
-        },
+        onPress: () => deleteQuote(quoteId),
         style: "destructive",
       },
     ])
@@ -209,93 +213,55 @@ export default function QuoteDisplayScreen({ navigation }) {
   // Toggle save status for a quote - now opens bookmark modal
   const toggleSave = (quote) => {
     setSelectedQuoteForBookmark(quote)
-    setSelectedCollectionId(null) // Reset selection
+    setSelectedCollectionId(null)
     setBookmarkModalVisible(true)
   }
 
   // Add quote to collection
-const addToCollection = async () => {
-  if (!selectedCollectionId || !selectedQuoteForBookmark) {
-    Toast.info("Please select a collection first");
-    return;
-  }
-
-  try {
-    console.log(`Adding quote "${selectedQuoteForBookmark.text}" to collection ${selectedCollectionId}`);
-
-    const collectionId = selectedCollectionId;
-    const quote = {
-      text: selectedQuoteForBookmark.text,
-      author: selectedQuoteForBookmark.author
-    };
-
-    const result = await addQuoteToCollection(collectionId, quote);
-    console.log("Add quote to collection result:", result);
-
-    if (result?.success) {
-      Toast.success(result.message || "Quote added successfully");
-      
-      // Wait for Toast to complete (2000ms = 2 seconds)
-      setTimeout(() => {
-        // Close modal and reset states AFTER Toast finishes
-        setBookmarkModalVisible(false);
-        setSelectedQuoteForBookmark(null);
-        setSelectedCollectionId(null);
-        
-        // Refresh collections
-        fetchCollections();
-      }, 2000); // Match this duration to your Toast's display time
-
-    } else {
-      Toast.error(result?.message || "Failed to add quote to collection");
-      // Don't close modal on error - let user retry
+  const addToCollection = async () => {
+    if (!selectedCollectionId || !selectedQuoteForBookmark) {
+      Toast.info("Please select a collection first");
+      return;
     }
 
-  } catch (error) {
-    console.error("Error adding quote to collection:", error);
-    Toast.error("Failed to add quote to collection");
-    // Keep modal open on error
-  }
-};
+    try {
+      setLoading(prev => ({ ...prev, addingToCollection: true }))
+      console.log(`Adding quote "${selectedQuoteForBookmark.text}" to collection ${selectedCollectionId}`);
+
+      const collectionId = selectedCollectionId;
+      const quote = {
+        text: selectedQuoteForBookmark.text,
+        author: selectedQuoteForBookmark.author
+      };
+
+      const result = await addQuoteToCollection(collectionId, quote);
+      console.log("Add quote to collection result:", result);
+
+      if (result?.success) {
+        Toast.success(result.message || "Quote added successfully");
+        
+        setTimeout(() => {
+          setBookmarkModalVisible(false);
+          setSelectedQuoteForBookmark(null);
+          setSelectedCollectionId(null);
+          fetchCollections();
+        }, 1500);
+
+      } else {
+        Toast.error(result?.message || "Failed to add quote to collection");
+      }
+
+    } catch (error) {
+      console.error("Error adding quote to collection:", error);
+      Toast.error("Failed to add quote to collection");
+    } finally {
+      setLoading(prev => ({ ...prev, addingToCollection: false }))
+    }
+  };
 
   // Handle collection selection
   const handleCollectionSelect = (collectionId) => {
     setSelectedCollectionId(collectionId)
-  }
-
-  // Helper function to refresh collections
-  const fetchCollections = async () => {
-    try {
-      setCollectionsLoading(true)
-      const userCollections = await getUserCollections();
-      console.log("Fetched collections:", userCollections)
-
-      if (userCollections && Array.isArray(userCollections.collections) && userCollections.collections.length > 0) {
-        const mappedCollections = userCollections.collections.map((col) => ({
-          id: col.id,
-          title: col.name,
-          count: col.quotes ? col.quotes.length : 0,
-        }));
-        setCollections(mappedCollections);
-      } else {
-        setCollections([
-          { id: "1", title: "Motivation", count: 0 },
-          { id: "2", title: "Success", count: 0 },
-          { id: "3", title: "Happiness", count: 0 },
-          { id: "4", title: "Mindfulness", count: 0 },
-        ]);
-      }
-    } catch (error) {
-      console.error("Error fetching collections:", error)
-      setCollections([
-        { id: "1", title: "Motivation", count: 0 },
-        { id: "2", title: "Success", count: 0 },
-        { id: "3", title: "Happiness", count: 0 },
-        { id: "4", title: "Mindfulness", count: 0 },
-      ]);
-    } finally {
-      setCollectionsLoading(false)
-    }
   }
 
   // Toggle follow status
@@ -323,9 +289,44 @@ const addToCollection = async () => {
     setQuoteDetailVisible(true)
   }
 
+  // Pull to refresh
+  const onRefresh = () => {
+    setLoading(prev => ({ ...prev, refreshing: true }))
+    fetchSavedQuotes(true);
+    fetchCollections();
+  }
+
+  // Render loading skeleton for quotes
+  const renderQuoteSkeleton = ({ index }) => (
+    <Animated.View
+      style={[
+        styles.quoteCard,
+        { 
+          transform: [{ scale: pulseAnim }],
+          opacity: pulseAnim.interpolate({
+            inputRange: [1, 1.1],
+            outputRange: [0.7, 1]
+          })
+        }
+      ]}
+    >
+      <View style={styles.skeletonContent}>
+        <View style={[styles.skeletonLine, { height: 16, marginBottom: 8 }]} />
+        <View style={[styles.skeletonLine, { height: 16, marginBottom: 8 }]} />
+        <View style={[styles.skeletonLine, { width: '80%', height: 16 }]} />
+      </View>
+      <View style={styles.skeletonFooter}>
+        <View style={[styles.skeletonLine, { width: '30%', height: 12 }]} />
+        <View style={styles.skeletonActions}>
+          <View style={[styles.skeletonAction, { width: 30 }]} />
+          <View style={[styles.skeletonAction, { width: 30 }]} />
+        </View>
+      </View>
+    </Animated.View>
+  )
+
   // Render a quote item
   const renderQuoteItem = ({ item, index }) => {
-    // Add animation for staggered appearance
     const translateY = scrollY.interpolate({
       inputRange: [(index - 1) * 100, index * 100],
       outputRange: [50, 0],
@@ -343,8 +344,16 @@ const addToCollection = async () => {
         <Animated.View style={[styles.quoteCard, { transform: [{ translateY }], opacity }]}>
           <View style={styles.quoteHeader}>
             <Text style={styles.quoteText}>{item.text}</Text>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteQuote(item.id)}>
-              <Ionicons name="trash-outline" size={20} color="#fff" />
+            <TouchableOpacity 
+              style={styles.deleteButton} 
+              onPress={() => handleDeleteQuote(item.id)}
+              disabled={loading.deleting}
+            >
+              {loading.deleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="trash-outline" size={20} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -370,20 +379,38 @@ const addToCollection = async () => {
     )
   }
 
+  // Render collection loading skeleton
+  const renderCollectionSkeleton = () => (
+    <Animated.View 
+      style={[
+        styles.bookmarkCollectionItem,
+        { transform: [{ scale: pulseAnim }] }
+      ]}
+    >
+      <View style={styles.bookmarkCollectionInfo}>
+        <View style={[styles.skeletonIcon, { width: 20, height: 20 }]} />
+        <View style={[styles.skeletonLine, { width: '60%', height: 16, marginLeft: 12 }]} />
+      </View>
+      <View style={styles.bookmarkCollectionMeta}>
+        <View style={[styles.skeletonLine, { width: 40, height: 14 }]} />
+        <View style={[styles.skeletonIcon, { width: 20, height: 20, marginLeft: 8 }]} />
+      </View>
+    </Animated.View>
+  )
+
   // Empty state component
   const EmptyState = () => (
     <View style={styles.emptyState}>
       <Ionicons name="document-text-outline" size={64} color="rgba(255,255,255,0.3)" />
       <Text style={styles.emptyStateTitle}>No quotes yet</Text>
       <Text style={styles.emptyStateText}>
-        Add your favorite quotes to see them here. Tap the "Add quote" button below to get started.
+        Add your favorite quotes to see them here. Your saved quotes will appear here.
       </Text>
     </View>
   )
 
   return (
     <ImageBackground
-      // Replace with your actual background image
       source={require("../../../assets/2.jpg")}
       style={styles.backgroundImage}
     >
@@ -399,7 +426,12 @@ const addToCollection = async () => {
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                   <Ionicons name="chevron-back" size={28} color="white" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>My Favorites </Text>
+                <View>
+                  <Text style={styles.headerTitle}>My Favorites</Text>
+                  {loading.quotes && (
+                    <Text style={styles.headerSubtitle}>Loading your quotes...</Text>
+                  )}
+                </View>
               </View>
 
               <View style={styles.headerRight}>
@@ -417,7 +449,7 @@ const addToCollection = async () => {
               <Ionicons name="search" size={20} color="#8D9CB0" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search"
+                placeholder="Search your quotes..."
                 placeholderTextColor="#8D9CB0"
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -432,7 +464,23 @@ const addToCollection = async () => {
         </Animated.View>
 
         {/* Quotes List */}
-        {quotes.length > 0 ? (
+        {loading.quotes ? (
+          <FlatList
+            data={[1, 2, 3, 4, 5]} // Dummy data for skeleton
+            renderItem={renderQuoteSkeleton}
+            keyExtractor={(item, index) => `skeleton-${index}`}
+            contentContainerStyle={styles.quotesList}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading.refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fff"
+                colors={["#fff"]}
+              />
+            }
+          />
+        ) : quotes.length > 0 ? (
           <Animated.FlatList
             data={filteredQuotes}
             renderItem={renderQuoteItem}
@@ -441,16 +489,37 @@ const addToCollection = async () => {
             showsVerticalScrollIndicator={false}
             onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
             scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading.refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fff"
+                colors={["#fff"]}
+              />
+            }
             ListEmptyComponent={
               searchQuery.length > 0 ? (
                 <View style={styles.noResults}>
+                  <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.3)" />
                   <Text style={styles.noResultsText}>No quotes found for "{searchQuery}"</Text>
+                  <Text style={styles.noResultsSubtext}>Try different keywords</Text>
                 </View>
               ) : null
             }
           />
         ) : (
-          <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <ScrollView 
+            style={styles.content} 
+            contentContainerStyle={styles.contentContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={loading.refreshing}
+                onRefresh={onRefresh}
+                tintColor="#fff"
+                colors={["#fff"]}
+              />
+            }
+          >
             <EmptyState />
           </ScrollView>
         )}
@@ -465,7 +534,6 @@ const addToCollection = async () => {
           <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
           <ToastManager/>
           <ImageBackground
-            // Replace this with your imported image
             source={require("../../../assets/7.jpg")}
             style={styles.modalBackground}
             resizeMode="cover"
@@ -569,9 +637,13 @@ const addToCollection = async () => {
               {/* Collections List */}
               <View style={styles.bookmarkCollectionsList}>
                 <Text style={styles.bookmarkCollectionsTitle}>Choose a collection:</Text>
-                {collectionsLoading ? (
+                {loading.collections ? (
                   <View style={styles.bookmarkLoadingContainer}>
-                    <Text style={styles.bookmarkLoadingText}>Loading collections...</Text>
+                    {[1, 2, 3].map((item) => (
+                      <View key={item}>
+                        {renderCollectionSkeleton()}
+                      </View>
+                    ))}
                   </View>
                 ) : collections.length === 0 ? (
                   <View style={styles.bookmarkEmptyContainer}>
@@ -615,17 +687,26 @@ const addToCollection = async () => {
                 <TouchableOpacity
                   style={[
                     styles.bookmarkSaveButton,
-                    !selectedCollectionId && styles.bookmarkSaveButtonDisabled
+                    (!selectedCollectionId || loading.addingToCollection) && styles.bookmarkSaveButtonDisabled
                   ]}
                   onPress={addToCollection}
-                  disabled={!selectedCollectionId}
+                  disabled={!selectedCollectionId || loading.addingToCollection}
                 >
-                  <Text style={[
-                    styles.bookmarkSaveButtonText,
-                    !selectedCollectionId && styles.bookmarkSaveButtonTextDisabled
-                  ]}>
-                    Save to Collection
-                  </Text>
+                  {loading.addingToCollection ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="small" color="#fff" />
+                      <Text style={[styles.bookmarkSaveButtonText, { marginLeft: 8 }]}>
+                        Adding...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={[
+                      styles.bookmarkSaveButtonText,
+                      !selectedCollectionId && styles.bookmarkSaveButtonTextDisabled
+                    ]}>
+                      Save to Collection
+                    </Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -672,7 +753,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "white",
-    marginLeft: 5, // Reduced margin to bring title closer to back button
+    marginLeft: 5,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+    marginLeft: 5,
+    marginTop: 2,
   },
   headerRight: {
     flexDirection: "row",
@@ -752,6 +839,10 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 4,
+    minWidth: 28,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quoteAuthor: {
     fontSize: 16,
@@ -804,11 +895,52 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 40,
+    flex: 1,
   },
   noResultsText: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.7)",
+    fontSize: 18,
+    color: "white",
     textAlign: "center",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noResultsSubtext: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+  },
+
+  // Skeleton Loading Styles
+  skeletonContent: {
+    flex: 1,
+  },
+  skeletonLine: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  skeletonIcon: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 4,
+  },
+  skeletonFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.1)",
+  },
+  skeletonActions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  skeletonAction: {
+    height: 22,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 11,
+    marginLeft: 12,
   },
 
   // Modal Styles
@@ -972,8 +1104,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bookmarkLoadingContainer: {
-    alignItems: "center",
-    paddingVertical: 20,
+    flex: 1,
   },
   bookmarkLoadingText: {
     fontSize: 16,
@@ -1058,5 +1189,10 @@ const styles = StyleSheet.create({
   },
   bookmarkSaveButtonTextDisabled: {
     color: "#999",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
 })

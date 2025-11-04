@@ -287,7 +287,7 @@ export default function FreeTrialScreen() {
         {/* Pricing Info */}
         <View style={styles.pricingContainer}>
           <Text style={styles.pricingText}>
-            Unlimited free access for 3 days, then{' '}
+            Unlimited free access for 3 days without ads, then{' '}
             <Text style={styles.strikethrough}>GH₵600.00</Text>{' '}
             GH₵560.00/year
           </Text>
