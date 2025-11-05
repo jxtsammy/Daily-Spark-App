@@ -20,7 +20,7 @@ import {
 import { ChevronLeft, Quote, Eye, EyeOff, Mail } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Register } from '../../../functions/register';
-import { SignIn } from '../../../functions/sign-in';
+import { SignIn, ResetPassword } from '../../../functions/sign-in'; // Updated import
 import ToastManager, { Toast } from 'toastify-react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -163,12 +163,24 @@ const SignInScreen = ({ navigation }) => {
     setForgotPasswordLoading(true);
     
     try {
-      // Simulate API call - replace with actual forgot password API
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      Toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
-      setForgotPasswordModal(false);
-      setForgotPasswordEmail("");
+      const res = await ResetPassword({ email: forgotPasswordEmail });
+      console.log("Reset password response:", res);
+
+      if (res.success) {
+        Toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
+        setForgotPasswordModal(false);
+        setForgotPasswordEmail("");
+      } else {
+        // Even if user doesn't exist, we show success for security
+        // But if there's a different error, show the message
+        if (res.error === 'email_send_failed' || res.error === 'password_reset_failed') {
+          Toast.error(res.message || "Failed to send reset link. Please try again.");
+        } else {
+          Toast.success(`If an account exists, a reset link has been sent to ${forgotPasswordEmail}`);
+          setForgotPasswordModal(false);
+          setForgotPasswordEmail("");
+        }
+      }
       
     } catch (error) {
       console.error("Forgot password error:", error);
@@ -349,71 +361,76 @@ const SignInScreen = ({ navigation }) => {
           </SafeAreaView>
         </LinearGradient>
 
+
+
         {/* Forgot Password Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={forgotPasswordModal}
-          onRequestClose={() => setForgotPasswordModal(false)}
+<Modal
+  animationType="slide"
+  transparent={true}
+  visible={forgotPasswordModal}
+  onRequestClose={() => setForgotPasswordModal(false)}
+>
+  <KeyboardAvoidingView 
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    style={styles.modalOverlay}
+  >
+    <TouchableWithoutFeedback onPress={() => setForgotPasswordModal(false)}>
+      <View style={styles.modalBackdrop} />
+    </TouchableWithoutFeedback>
+    
+    <View style={styles.modalContainer}>
+      <View style={styles.modalHandle} />
+      
+      <View style={styles.modalHeader}>
+        <Mail size={24} color="#8B5CF6" />
+        <Text style={styles.modalTitle}>Reset Password</Text>
+        <Text style={styles.modalSubtitle}>
+          Enter your email address and we'll send you a secure link to reset your password. The link will expire in 1 hour.
+        </Text>
+      </View>
+
+      <View style={styles.modalInputContainer}>
+        <Text style={styles.modalInputLabel}>Email Address</Text>
+        <TextInput
+          style={styles.modalInput}
+          value={forgotPasswordEmail}
+          onChangeText={setForgotPasswordEmail}
+          placeholder="your@email.com"
+          placeholderTextColor="#8D9CB0"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!forgotPasswordLoading}
+        />
+      </View>
+
+      <View style={styles.modalButtonContainer}>
+        <TouchableOpacity 
+          style={styles.modalCancelButton}
+          onPress={() => setForgotPasswordModal(false)}
+          disabled={forgotPasswordLoading}
         >
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={() => setForgotPasswordModal(false)}>
-              <View style={styles.modalBackdrop} />
-            </TouchableWithoutFeedback>
-            
-            <View style={styles.modalContainer}>
-              <View style={styles.modalHandle} />
-              
-              <View style={styles.modalHeader}>
-                <Mail size={24} color="#8B5CF6" />
-                <Text style={styles.modalTitle}>Reset Password</Text>
-                <Text style={styles.modalSubtitle}>
-                  Enter your email address and we'll send you a link to reset your password
-                </Text>
-              </View>
-
-              <View style={styles.modalInputContainer}>
-                <Text style={styles.modalInputLabel}>Email Address</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={forgotPasswordEmail}
-                  onChangeText={setForgotPasswordEmail}
-                  placeholder="your@email.com"
-                  placeholderTextColor="#8D9CB0"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!forgotPasswordLoading}
-                />
-              </View>
-
-              <View style={styles.modalButtonContainer}>
-                <TouchableOpacity 
-                  style={styles.modalCancelButton}
-                  onPress={() => setForgotPasswordModal(false)}
-                  disabled={forgotPasswordLoading}
-                >
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[
-                    styles.modalSubmitButton,
-                    (!forgotPasswordEmail.trim() || forgotPasswordLoading) && styles.modalSubmitButtonDisabled
-                  ]}
-                  onPress={handleForgotPassword}
-                  disabled={!forgotPasswordEmail.trim() || forgotPasswordLoading}
-                >
-                  {forgotPasswordLoading ? (
-                    <ActivityIndicator color="#fff" size="small" />
-                  ) : (
-                    <Text style={styles.modalSubmitButtonText}>Send Reset Link</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+          <Text style={styles.modalCancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[
+            styles.modalSubmitButton,
+            (!forgotPasswordEmail.trim() || forgotPasswordLoading) && styles.modalSubmitButtonDisabled
+          ]}
+          onPress={handleForgotPassword}
+          disabled={!forgotPasswordEmail.trim() || forgotPasswordLoading}
+        >
+          {forgotPasswordLoading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.modalSubmitButtonText}>Send Reset Link</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
       </View>
     </TouchableWithoutFeedback>
   );

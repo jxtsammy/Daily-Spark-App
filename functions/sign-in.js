@@ -59,3 +59,31 @@ export const SignIn = async ({ email, password }) => {
         return false;
     }
 };
+
+export const ResetPassword = async ({ email }) => {
+    try {
+        const response = await api.post('/auth/reset', { email });
+
+        console.log('Reset password response:', response.data);
+
+        if (response.data.success) {
+            console.log('Password reset email sent successfully');
+        } else {
+            console.warn('Password reset request failed:', response.data.message);
+        }
+
+        return response.data;
+
+    } catch (error) {
+        console.error('Error requesting password reset:', {
+            error: error.message,
+            response: error.response?.data
+        });
+        
+        return {
+            success: false,
+            message: error.response?.data?.message || 'Failed to request password reset',
+            error: error.response?.data?.error || 'request_failed'
+        };
+    }
+};
