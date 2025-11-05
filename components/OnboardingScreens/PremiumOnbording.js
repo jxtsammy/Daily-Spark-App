@@ -10,7 +10,8 @@ import {
   Switch,
   Animated,
   ActivityIndicator,
-  Linking
+  Linking,
+  Dimensions
 } from 'react-native';
 import { X, Lock, Bell, Crown } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,9 @@ import { createFreeTrial } from '../../functions/create-free-trial';
 import AdManager from '../../services/AdManager';
 import ToastManager, { Toast } from 'toastify-react-native';
 import { createAnonymous } from '../../functions/create-anonymous';
+
+const { width, height } = Dimensions.get('window');
+const isSmallScreen = height < 700;
 
 export default function FreeTrialScreen() {
   const navigation = useNavigation();
@@ -102,7 +106,8 @@ export default function FreeTrialScreen() {
 
   const createFloatingDots = () => {
     const newDots = [];
-    const numDots = Platform.OS === 'ios' ? 20 : 15;
+    // Reduce dots on smaller screens for better performance
+    const numDots = isSmallScreen ? 8 : (Platform.OS === 'ios' ? 20 : 15);
 
     for (let i = 0; i < numDots; i++) {
       const posX = new Animated.Value(Math.random() * 100);
@@ -181,31 +186,33 @@ export default function FreeTrialScreen() {
       <StatusBar barStyle="light-content" />
       <ToastManager />
 
-      {/* Floating Dots Background */}
-      {dots.map((dot, index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.floatingDot,
-            {
-              left: dot.posX.interpolate({
-                inputRange: [0, 100],
-                outputRange: ['0%', '90%'],
-              }),
-              top: dot.posY.interpolate({
-                inputRange: [0, 100],
-                outputRange: ['0%', '90%'],
-              }),
-              width: dot.size,
-              height: dot.size,
-              opacity: dot.opacity,
-              borderRadius: dot.size / 2,
-            },
-          ]}
-        />
-      ))}
+      {/* Floating Dots Background - Contained to prevent overlapping */}
+      <View style={styles.dotsContainer}>
+        {dots.map((dot, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.floatingDot,
+              {
+                left: dot.posX.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '90%'],
+                }),
+                top: dot.posY.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ['0%', '90%'],
+                }),
+                width: dot.size,
+                height: dot.size,
+                opacity: dot.opacity,
+                borderRadius: dot.size / 2,
+              },
+            ]}
+          />
+        ))}
+      </View>
 
-      {/* Close Button */}
+      {/* Close Button - Better positioned and larger touch area */}
       <TouchableOpacity
         style={styles.closeButton}
         onPress={handleClose}
@@ -215,7 +222,7 @@ export default function FreeTrialScreen() {
         <X size={24} color="white" />
       </TouchableOpacity>
 
-      <View style={styles.content}>
+      <View style={styles.content} pointerEvents="box-none">
         {/* Header Section */}
         <View style={styles.header}>
           <Text style={styles.title}>How your free trial works</Text>
@@ -329,13 +336,22 @@ export default function FreeTrialScreen() {
 
         {/* Footer Links */}
         <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={() => openLink('https://example.com/restore')}>
+          <TouchableOpacity 
+            onPress={() => openLink('https://example.com/restore')}
+            style={styles.footerLinkTouchable}
+          >
             <Text style={styles.footerLink}>Restore</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => openLink('https://example.com/terms')}>
+          <TouchableOpacity 
+            onPress={() => openLink('https://example.com/terms')}
+            style={styles.footerLinkTouchable}
+          >
             <Text style={styles.footerLink}>Terms</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => openLink('https://example.com/privacy')}>
+          <TouchableOpacity 
+            onPress={() => openLink('https://example.com/privacy')}
+            style={styles.footerLinkTouchable}
+          >
             <Text style={styles.footerLink}>Privacy</Text>
           </TouchableOpacity>
         </View>
@@ -357,43 +373,61 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Dots container to keep them in background
+  dotsContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 0, // Lower z-index to stay in background
+  },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingHorizontal: isSmallScreen ? 16 : 20,
+    paddingTop: isSmallScreen ? 10 : 20,
+    paddingBottom: isSmallScreen ? 10 : 20,
+    zIndex: 1, // Higher z-index to stay above dots
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 20,
-    zIndex: 10,
-    padding: 5,
+    zIndex: 20, // Highest z-index to ensure it's always clickable
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 44,
+    minHeight: 44,
   },
   header: {
-    marginTop: 40,
+    marginTop: isSmallScreen ? 50 : 60,
     marginBottom: 30,
     alignItems: 'center',
   },
   title: {
-    fontSize: 28,
+    fontSize: isSmallScreen ? 24 : 28,
     fontWeight: 'bold',
     color: 'white',
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: '#A0AEC0',
     textAlign: 'center',
+    lineHeight: 20,
   },
   timelineContainer: {
     backgroundColor: '#2D3748',
     borderRadius: 16,
-    padding: 20,
+    padding: isSmallScreen ? 16 : 20,
     marginBottom: 20,
     borderWidth: 1,
     borderColor: '#9B7AEA',
+    zIndex: 1,
   },
   timeline: {
     position: 'relative',
@@ -418,7 +452,7 @@ const styles = StyleSheet.create({
   timelineItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 30,
+    marginBottom: isSmallScreen ? 20 : 30,
     position: 'relative',
   },
   timelineIconContainer: {
@@ -427,6 +461,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    zIndex: 2,
   },
   activeIconContainer: {
     position: 'relative',
@@ -436,37 +471,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeIcon: {
+    // Add any active icon styles if needed
   },
   timelineTextContainer: {
     flex: 1,
     paddingTop: 8,
   },
   timelineTitle: {
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: 'bold',
     color: 'white',
     marginBottom: 5,
   },
   timelineDescription: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     color: '#A0AEC0',
     lineHeight: 20,
   },
   pricingContainer: {
     alignItems: 'center',
     marginBottom: 20,
+    zIndex: 1,
   },
   pricingText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: 'white',
     textAlign: 'center',
+    lineHeight: 22,
   },
   strikethrough: {
     textDecorationLine: 'line-through',
     color: '#A0AEC0',
   },
   monthlyPrice: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 12 : 14,
     color: '#A0AEC0',
     marginTop: 5,
   },
@@ -478,23 +516,39 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
+    zIndex: 1,
+    minHeight: 60, // Ensure minimum touch height
   },
   reminderText: {
-    fontSize: 16,
+    fontSize: isSmallScreen ? 14 : 16,
     color: 'white',
+    flex: 1,
   },
   startTrialButton: {
     borderRadius: 30,
     overflow: 'hidden',
     marginBottom: 20,
+    zIndex: 1,
+    minHeight: 60, // Larger touch area
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   gradient: {
-    paddingVertical: 16,
+    paddingVertical: isSmallScreen ? 16 : 18,
     alignItems: 'center',
+    minHeight: 60,
+    justifyContent: 'center',
   },
   startTrialText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: isSmallScreen ? 16 : 18,
     fontWeight: 'bold',
   },
   disabledButton: {
@@ -504,14 +558,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 10,
+    zIndex: 1,
+  },
+  footerLinkTouchable: {
+    padding: 10,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   footerLink: {
     color: '#A0AEC0',
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
+    textAlign: 'center',
   },
   floatingDot: {
     position: 'absolute',
     backgroundColor: 'rgba(255,255,255,0.3)',
-    zIndex: -1,
+    zIndex: 0, // Ensure dots stay in background
   },
 });
