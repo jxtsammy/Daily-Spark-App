@@ -3,7 +3,7 @@
     "name": "daily-spark-app",
     "slug": "daily-spark",
     "scheme": "dailyspark",
-    "version": "1.0.1",
+    "version": "2.0.2",
     "orientation": "portrait",
     "icon": "./assets/DailySparkLogo.jpeg",
     "userInterfaceStyle": "light",
