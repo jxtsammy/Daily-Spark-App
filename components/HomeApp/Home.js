@@ -167,9 +167,9 @@ export default function QuotesScreen({ navigation }) {
     setScrollCount(newScrollCount);
     setTotalScrolls(newTotalScrolls);
     
-    // Show rewarded ad every 5 scrolls (regardless of direction)
-    if (newScrollCount % 5 === 0) {
-      console.log('Showing rewarded ad after 5 scrolls');
+    // Show rewarded ad every 15 scrolls (policy compliant)
+    if (newScrollCount % 15 === 0) {
+      console.log('Showing rewarded ad after 15 scrolls');
       const rewardShown = await AdManager.showRewarded((reward) => {
         console.log('Reward earned:', reward);
         Toast.show("Reward earned! Keep scrolling for more quotes.", "success");
@@ -182,9 +182,9 @@ export default function QuotesScreen({ navigation }) {
       }
     }
     
-    // Show interstitial ad every 10 total scrolls
-    if (newTotalScrolls % 10 === 0) {
-      console.log('Showing interstitial ad after 10 total scrolls');
+    // Show interstitial ad every 15 total scrolls (policy compliant)
+    if (newTotalScrolls % 15 === 0) {
+      console.log('Showing interstitial ad after 15 total scrolls');
       const interstitialShown = await AdManager.showInterstitial();
       
       if (interstitialShown) {

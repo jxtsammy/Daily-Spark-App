@@ -256,27 +256,18 @@ async showRewarded(onEarnedReward) {
 
   /**
    * Creates a Banner Ad component.
+   * DISABLED for policy compliance - banner ads removed to improve user experience
    * @public
    * @param {BannerAdSize} [size=BannerAdSize.BANNER] - Ad size from BannerAdSize enum
    * @param {Function} [onError] - Error callback
-   * @returns {JSX.Element} BannerAd component
+   * @returns {null} Returns null - banner ads are disabled
    * @example
-   * // In component render:
-   * {AdManager.getBannerAd(BannerAdSize.FULL_BANNER, (error) => {
-   *   console.error('Banner load failed:', error);
-   * })}
+   * // Banner ads are disabled for compliance
+   * // This method now returns null
    */
   getBannerAd(size = BannerAdSize.BANNER, onError) {
-    return (
-      <BannerAd
-        unitId={AD_UNITS.BANNER}
-        size={size}
-        requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
-        }}
-        onAdFailedToLoad={onError || ((error) => console.error('Banner error:', error))}
-      />
-    );
+    console.log('Banner ads are disabled for policy compliance');
+    return null;
   }
 }
 
