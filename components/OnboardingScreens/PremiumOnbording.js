@@ -25,7 +25,7 @@ import { createAnonymous } from '../../functions/create-anonymous';
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = height < 700;
 
-export default function FreeTrialScreen() {
+export default function PremiumScreen() {
   const navigation = useNavigation();
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,16 +37,16 @@ export default function FreeTrialScreen() {
     try {
       const res = await createFreeTrial();
       if (res) {
-        Toast.success('Free trial started successfully!');
+        Toast.success('Premium activated successfully!');
         setTimeout(() => {
           navigation.replace('Home');
         }, 1500);
       } else {
-        Toast.error(res?.message || 'Failed to start free trial');
+        Toast.error(res?.message || 'Could not activate premium. Please try again.');
       }
     } catch (error) {
       console.error('API Error:', error);
-      Toast.error('An error occurred while starting your trial');
+      Toast.error('An error occurred while activating premium');
     } finally {
       setLoading(false);
     }
@@ -61,17 +61,17 @@ export default function FreeTrialScreen() {
       }
     }, 10000); // 10 second timeout
 
-    const checkFreeTrialStatus = async () => {
+    const checkPremiumStatus = async () => {
       try {
         setCheckingStatus(true);
-        await createAnonymous('FreeTrialScreen');
+        await createAnonymous('PremiumScreen');
         const hasActiveTrial = await CheckHasFreeTrial();
         if (hasActiveTrial) {
           navigation.replace('Home');
         }
       } catch (error) {
-        console.error('Error checking trial status:', error);
-        Toast.error('Failed to check trial status');
+        console.error('Error checking premium status:', error);
+        Toast.error('Failed to check premium status');
       } finally {
         if (isMounted) {
           clearTimeout(timeout);
@@ -80,7 +80,7 @@ export default function FreeTrialScreen() {
       }
     };
 
-    checkFreeTrialStatus();
+    checkPremiumStatus();
     return () => {
       isMounted = false;
       clearTimeout(timeout);
@@ -225,9 +225,9 @@ export default function FreeTrialScreen() {
       <View style={styles.content} pointerEvents="box-none">
         {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.title}>How your free trial works</Text>
+          <Text style={styles.title}>Upgrade to Premium</Text>
           <Text style={styles.subtitle}>
-            You won't be charged anything today
+            Unlock unlimited access to all features
           </Text>
         </View>
 
@@ -268,12 +268,12 @@ export default function FreeTrialScreen() {
                 <View style={styles.timelineTextContainer}>
                   <Text style={styles.timelineTitle}>Day 2</Text>
                   <Text style={styles.timelineDescription}>
-                    Get a reminder that your trial ends in 24 hours
+                    Enjoy all premium features without interruptions
                   </Text>
                 </View>
               </View>
 
-              {/* After day 3 */}
+              {/* Ongoing */}
               <View style={styles.timelineItem}>
                 <View style={styles.timelineIconContainer}>
                   <View style={styles.timelineIcon}>
@@ -281,9 +281,9 @@ export default function FreeTrialScreen() {
                   </View>
                 </View>
                 <View style={styles.timelineTextContainer}>
-                  <Text style={styles.timelineTitle}>After day 3</Text>
+                  <Text style={styles.timelineTitle}>Forever</Text>
                   <Text style={styles.timelineDescription}>
-                    Your free trial ends and you'll be charged, cancel anytime before
+                    Keep premium active and cancel anytime
                   </Text>
                 </View>
               </View>
@@ -294,7 +294,7 @@ export default function FreeTrialScreen() {
         {/* Pricing Info */}
         <View style={styles.pricingContainer}>
           <Text style={styles.pricingText}>
-            Unlimited free access for 3 days without ads, then{' '}
+            Premium access at{' '}
             <Text style={styles.strikethrough}>GH₵600.00</Text>{' '}
             GH₵560.00/year
           </Text>
@@ -303,7 +303,7 @@ export default function FreeTrialScreen() {
 
         {/* Reminder Toggle */}
         <View style={styles.reminderContainer}>
-          <Text style={styles.reminderText}>Reminder before trial ends</Text>
+          <Text style={styles.reminderText}>Get subscription notifications</Text>
           <Switch
             trackColor={{ false: '#4A5568', true: '#9B7AEA' }}
             thumbColor={'#FFFFFF'}
@@ -329,7 +329,7 @@ export default function FreeTrialScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.startTrialText}>Start 3-day free trial now</Text>
+              <Text style={styles.startTrialText}>Upgrade Now</Text>
             )}
           </LinearGradient>
         </TouchableOpacity>

@@ -83,7 +83,7 @@ const ManageSubscriptionScreen = ({ navigation }) => {
       style={styles.backgroundImage}
     >
       <LinearGradient
-        colors={['rgba(0, 0, 0, 0.9)', 'rgba(0, 0, 0, 0.4)']}
+        colors={['rgba(30, 30, 60, 0.4)', 'rgba(60, 60, 100, 0.2)']}
         style={styles.gradientOverlay}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
