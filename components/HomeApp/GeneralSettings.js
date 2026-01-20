@@ -19,7 +19,10 @@ import {
   Flame,
   LogIn,
   ChevronRight,
-  Smartphone
+  Smartphone,
+  Lock,
+  Trash2,
+  FileText
 } from 'lucide-react-native';
 import { useStore } from '../../store/useStore';
 
@@ -124,7 +127,25 @@ export default function App({ navigation }) {
             {renderSettingItem(
               <Smartphone stroke="#fff" width={24} height={24} style={styles.icon} />,
               "About App",
-              "About",
+              "About"
+            )}
+
+            {/* Privacy & Data Section */}
+            <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>PRIVACY & DATA</Text>
+            {renderSettingItem(
+              <FileText stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Privacy Policy",
+              "PrivacyPolicy"
+            )}
+            {renderSettingItem(
+              <Lock stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Manage Data",
+              "ManageData"
+            )}
+            {renderSettingItem(
+              <Trash2 stroke="#fff" width={24} height={24} style={styles.icon} />,
+              "Delete Account",
+              "DeleteAccount",
               true
             )}
 
