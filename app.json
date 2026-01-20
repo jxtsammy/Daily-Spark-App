@@ -5,13 +5,13 @@
     "scheme": "dailyspark",
     "version": "2.0.2",
     "orientation": "portrait",
-    "icon": "./assets/DailySparkLogo.jpeg",
+    "icon": "./assets/daily-spark-icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/DailySparkLogo.jpeg",
+      "image": "./assets/daily-spark-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
@@ -28,8 +28,8 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/DailySparkLogo.jpeg",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/daily-spark-icon.png",
+        "backgroundColor": "#000000"
       },
       "package": "com.ashdev87.dailyspark",
       "permissions": [
@@ -39,7 +39,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/DailySparkLogo.jpeg"
+      "favicon": "./assets/daily-spark-icon.png"
     },
     "owner": "ashdev87",
     "plugins": [
@@ -54,8 +54,8 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/DailySparkLogo.jpeg",
-          "color": "#ffffff",
+          "icon": "./assets/daily-spark-icon.png",
+          "color": "#000000",
           "sounds": [],
           "mode": "production"
         }
