@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "daily-spark-app",
+    "name": "Daily Spark",
     "slug": "daily-spark",
     "scheme": "dailyspark",
     "version": "2.0.2",

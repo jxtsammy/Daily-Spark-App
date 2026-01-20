@@ -44,11 +44,20 @@ const { width, height } = Dimensions.get("window");
 
 export default function AboutScreen({ navigation }) {
   const socialLinks = [
-    { name: "facebook-f", color: "#3b5998", url: "https://facebook.com" },
-    { name: "twitter", color: "#1DA1F2", url: "https://twitter.com" },
-    { name: "linkedin-in", color: "#0077B5", url: "https://linkedin.com" },
-    { name: "instagram", color: "#C13584", url: "https://instagram.com" },
-    { name: "github", color: "#333", url: "https://github.com" },
+    { name: "facebook-f", color: "#3b5998", url: "https://www.facebook.com/share/1A3CyvMFCV/" },
+    { name: "envelope", color: "#FF6B6B", url: "mailto:amyeze321@gmail.com" },
+  ];
+
+  const skills = [
+    "Child Protection",
+    "Abuse Prevention",
+    "Women's Empowerment",
+    "Nonprofit Leadership",
+    "Social Development",
+    "Advocacy",
+    "Capacity Building",
+    "Mentorship",
+    "Community Outreach"
   ];
 
   return (
@@ -156,16 +165,16 @@ export default function AboutScreen({ navigation }) {
             </View>
 
             {/* Skills Section */}
-            {/* <View style={styles.bioSection}>
-              <Text style={styles.bioTitle}>Skills</Text>
+            <View style={styles.bioSection}>
+              <Text style={styles.bioTitle}>Expertise</Text>
               <View style={styles.skillsContainer}>
-                {["JavaScript", "React Native", "Node.js", "UI/UX Design", "Python"].map((skill, index) => (
+                {skills.map((skill, index) => (
                   <View key={index} style={styles.skillBadge}>
                     <Text style={styles.skillText}>{skill}</Text>
                   </View>
                 ))}
               </View>
-            </View> */}
+            </View>
           </ScrollView>
         </SafeAreaView>
       </View>

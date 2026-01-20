@@ -35,6 +35,8 @@ import SignIn from './components/HomeApp/GeneralSettingsOptions/SignIn'
 import ManageSubscription from './components/HomeApp/GeneralSettingsOptions/ManageSubscription'
 import Themes from './components/HomeApp/Themes'
 import About from './components/HomeApp/GeneralSettingsOptions/About'
+import DeleteAccount from './components/HomeApp/GeneralSettingsOptions/DeleteAccount'
+import ManageData from './components/HomeApp/GeneralSettingsOptions/ManageData'
 import AddQuotes from './components/HomeApp/ExporeOptions/AddQuotes'
 import Favorites from './components/HomeApp/ExporeOptions/Favorites'
 import RecentQuotes from './components/HomeApp/ExporeOptions/RecentQuotes'
@@ -287,6 +289,16 @@ export default function App() {
         <Stack.Screen
           name="About"
           component={About}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DeleteAccount"
+          component={DeleteAccount}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ManageData"
+          component={ManageData}
           options={{ headerShown: false }}
         />
         <Stack.Screen
