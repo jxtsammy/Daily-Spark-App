@@ -172,6 +172,14 @@ export default function DeleteAccountScreen({ navigation }) {
             </View>
           </View>
 
+          {/* Alternatives Section */}
+          <View style={styles.infoSection}>
+            <Text style={styles.sectionTitle}>Before You Go</Text>
+            <Text style={styles.alternativeText}>
+              You can also delete individual items (quotes, collections) without deleting your entire account. Go to the item and select "Delete".
+            </Text>
+          </View>
+
           {/* Contact Support */}
           <View style={styles.contactSection}>
             <Text style={styles.sectionTitle}>Need Help?</Text>
@@ -299,6 +307,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     alignItems: "flex-start",
   },
+  infoItem: {
+    flexDirection: "row",
+    marginBottom: 15,
+    alignItems: "flex-start",
+  },
   infoContent: {
     marginLeft: 12,
     flex: 1,
@@ -312,6 +325,14 @@ const styles = StyleSheet.create({
   infoDescription: {
     fontSize: 14,
     color: "#aaa",
+  },
+  alternativeText: {
+    fontSize: 14,
+    color: "#ccc",
+    lineHeight: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 10,
+    padding: 15,
   },
   contactSection: {
     marginBottom: 25,
