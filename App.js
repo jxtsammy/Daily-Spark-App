@@ -45,8 +45,18 @@ import MyCollections from './components/HomeApp/ExporeOptions/MyCollections'
 import QuotesNotificationA from './components/HomeApp/Notifications/QuotesNotificationA';
 import PaymentVerification from './components/HomeApp/PaymentVerification';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
+import {useStore} from './store/useStore';
 
-import mobileAds from 'react-native-google-mobile-ads';
+// Conditionally import Google Mobile Ads only when not in Expo Go
+let mobileAds = null;
+try {
+  mobileAds = require('react-native-google-mobile-ads').default;
+} catch (e) {
+  console.log('Google Mobile Ads not available (Expo Go mode)');
+}
+
 // import {NotificationInitializer} from './services/notoficationInitializer'
 SplashScreen.preventAutoHideAsync();
 
@@ -69,29 +79,61 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Wait for store to hydrate
+        console.log('Starting app initialization...');
+        
+        // Wait for store to hydrate with timeout fallback
         await new Promise((resolve) => {
-          const unsub = useStore.persist.onFinishHydration(() => {
-            unsub(); // Cleanup subscription
+          let resolved = false;
+          
+          // Set a timeout in case hydration takes too long
+          const timeout = setTimeout(() => {
+            if (!resolved) {
+              console.log('Store hydration timeout - continuing anyway');
+              resolved = true;
+              resolve();
+            }
+          }, 2000);
+          
+          // Check if already hydrated
+          if (useStore.persist.hasHydrated?.()) {
+            console.log('Store already hydrated');
+            clearTimeout(timeout);
+            resolved = true;
             resolve();
+            return;
+          }
+          
+          // Wait for hydration to complete
+          const unsub = useStore.persist.onFinishHydration(() => {
+            console.log('Store hydration completed');
+            if (!resolved) {
+              clearTimeout(timeout);
+              resolved = true;
+              unsub(); // Cleanup subscription
+              resolve();
+            }
           });
         });
 
+        console.log('Store hydration complete, initializing ads...');
 
-        mobileAds()
-          .initialize()
-          .then(adapterStatuses => {
-            console.log('Adapter Statuses: ', adapterStatuses);
-
-          });
+        // Initialize Google Mobile Ads only if available (not in Expo Go)
+        if (mobileAds) {
+          mobileAds()
+            .initialize()
+            .then(adapterStatuses => {
+              console.log('Adapter Statuses: ', adapterStatuses);
+            });
+        }
 
         // Initialize notifications
         // await NotificationInitializer.initializeNotifications(navigationRef.current);
 
       } catch (e) {
-        console.warn(e);
+        console.warn('Error during app initialization:', e);
       } finally {
         // Tell the application to render
+        console.log('App ready, hiding splash screen');
         setAppIsReady(true);
         await SplashScreen.hideAsync();
       }

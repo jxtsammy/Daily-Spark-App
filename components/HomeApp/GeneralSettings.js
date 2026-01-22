@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    backgroundColor: '#1E2732', // Changed from rgba(0, 0, 0, 0.25) to solid background
   },
   container: {
     flex: 1,
