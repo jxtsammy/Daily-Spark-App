@@ -959,7 +959,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             </ImageBackground>
           ) : (
             <View style={styles.themePreview}>
-              {cachedImages[`${item.id}_error`] ? (
+              {failedImages[item.id] ? (
                 // Show fallback for failed images
                 <View style={styles.imageOverlay}>
                   <Text style={[styles.previewText, {color: '#fff'}]}>Aa</Text>
@@ -967,45 +967,16 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
                 </View>
               ) : (
                 <>
-                  {/* Show placeholder while image is loading */}
-                  {!cachedImages[item.value] && (
-                    <View style={styles.imagePlaceholder}>
-                      <ActivityIndicator size="small" color="#fff" />
-                      <Text style={styles.placeholderText}>Loading...</Text>
-                    </View>
-                  )}
-                  
                   <Image
-                    source={cachedImages[item.value] || { uri: item.value }}
+                    source={{ uri: item.value }}
                     style={[styles.themePreviewImage]}
                     resizeMode="cover"
                     progressiveRenderingEnabled={true}
                     fadeDuration={300}
                     defaultSource={require('../../assets/bg.jpg')}
-                    onLoadStart={() => {
-                      // Could track loading state here if needed
-                    }}
-                    onLoadEnd={() => {
-                      // Clear any error state if the image loads successfully
-                      if (cachedImages[`${item.id}_error`]) {
-                        const updatedCache = {...cachedImages};
-                        delete updatedCache[`${item.id}_error`];
-                        setCachedImages(updatedCache);
-                      }
-                    }} 
                     onError={(e) => {
                       console.warn(`Error loading image ${item.id}:`, e.nativeEvent.error);
                       // Trigger fallback for this specific image
-                      const updatedCache = {...cachedImages};
-                      updatedCache[`${item.id}_error`] = true;
-                      setCachedImages(updatedCache);
-                      
-                      // Try with a different quality or format if Pexels
-                      if (item.value.includes('pexels.com') && !item.value.includes('&q=')) {
-                        // Try with lower quality for better compatibility
-                        const fallbackUrl = item.value + '&q=70';
-                        
-                        // Update the cached images with the fallback URL
                         updatedCache[item.value] = { uri: fallbackUrl };
                         setCachedImages(updatedCache);
                       }
