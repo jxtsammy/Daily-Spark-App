@@ -323,16 +323,12 @@ const handleLike = async () => {
       }
       shareMessage += "\n\nShared from Daily Spark";
       
-      // Add theme information if available
-      if (currentTheme) {
-        if (currentTheme.type === 'color') {
-          shareMessage += `\nTheme: ${currentTheme.name}`;
-        } else if (currentTheme.type === 'gradient') {
-          shareMessage += `\nTheme: ${currentTheme.name} Gradient`;
-        } else if (currentTheme.type === 'image') {
-          shareMessage += `\nTheme: ${currentTheme.name} Background`;
-        }
-      }
+      // Add theme information if available (Removed as per user request to not show "Background 2 Background")
+      // if (currentTheme) {
+      //   if (currentTheme.type === 'color') {
+      //     shareMessage += `\nTheme: ${currentTheme.name}`;
+      //   } ...
+      // }
 
       // First attempt to share with image if the theme has one
       if (currentTheme && currentTheme.type === 'image') {
@@ -341,15 +337,11 @@ const handleLike = async () => {
           let fileUri = null;
           
           if (imageAsset) {
-            // If it's a remote URL, download it first
+            // REMOTE URL
             if (imageAsset.uri) {
               const fileName = imageAsset.uri.split('/').pop().split('?')[0] + '.jpg';
               const fileDest = `${FileSystem.cacheDirectory}${fileName}`;
               
-              // Simple check if file likely exists or just download it
-              // We blindly download to avoid the deprecated getInfoAsync check for now, 
-              // or we could wrapping it in a try/catch if we really wanted to check existence.
-              // For sharing, fresh download is safer to ensure it works.
               try {
                 const { uri } = await FileSystem.downloadAsync(
                   imageAsset.uri,
@@ -360,13 +352,34 @@ const handleLike = async () => {
                 console.log('Download failed, using remote URI fallback', dlError);
                 fileUri = imageAsset.uri;
               }
-            } else if (typeof imageAsset === 'number') {
-              // Local asset - difficult to share directly via Share.share url on some platforms 
-              // without resolveAssetSource, but often treated as resource.
-              // For React Native 'Share', local assets usually need to be regular files.
-              // We'll skip complex local asset conversion for now as most are remote.
-              // If you have local assets, you might need Image.resolveAssetSource(imageAsset).uri 
-              // but it's a 'asset://' or 'http://localhost' scheme in Expo Go.
+            } 
+            // LOCAL ASSET (number)
+            else if (typeof imageAsset === 'number') {
+              try {
+                // Resolve local asset to URI
+                const resolved = Image.resolveAssetSource(imageAsset);
+                if (resolved && resolved.uri) {
+                  const fileName = 'shared_local_theme.jpg';
+                  const fileDest = `${FileSystem.cacheDirectory}${fileName}`;
+                  
+                  // In Expo Go (dev), local assets are served via http
+                  // In prod, they might be file:// or asset://
+                  // downloadAsync handles http well. copyAsync handles file:// better.
+                  // We'll try download first as it covers the most common cases including dev.
+                  try {
+                    const { uri } = await FileSystem.downloadAsync(
+                      resolved.uri,
+                      fileDest
+                    );
+                    fileUri = uri;
+                  } catch (e) {
+                    console.log('Local asset download failed, falling back to original URI', e);
+                    fileUri = resolved.uri;
+                  }
+                }
+              } catch (resolveError) {
+                console.log('Error resolving local asset:', resolveError);
+              }
             }
           }
           
