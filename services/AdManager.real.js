@@ -19,10 +19,10 @@ import {
  * @property {string} BANNER - Banner ad unit ID
  */
 const AD_UNITS = {
-  APP_OPEN: __DEV__ ? TestIds.APP_OPEN : 'ca-app-pub-xxxx/xxxx',
-  INTERSTITIAL: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-xxxx/xxxx',
-  REWARDED: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-xxxx/xxxx',
-  BANNER: __DEV__ ? TestIds.BANNER : 'ca-app-pub-xxxx/xxxx'
+  APP_OPEN: __DEV__ ? TestIds.APP_OPEN : 'ca-app-pub-2192654244363810/1564571832', // Using interstitial for app open
+  INTERSTITIAL: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-2192654244363810/1564571832',
+  REWARDED: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-2192654244363810/6842100625',
+  BANNER: __DEV__ ? TestIds.BANNER : 'ca-app-pub-2192654244363810/3951556860'
 };
 
 /**

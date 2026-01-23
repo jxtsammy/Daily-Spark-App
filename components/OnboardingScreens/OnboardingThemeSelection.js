@@ -17,7 +17,7 @@ export default function OnboardingThemeSelection() {
     setThemeSelected(true);
     setVisible(false);
     // Next onboarding screen
-    navigation.replace('PremiumOnbording');
+    navigation.replace('Home');
   };
 
   return (
@@ -29,7 +29,7 @@ export default function OnboardingThemeSelection() {
           // mark that user saw/closed the theme selector (don't show again)
           setThemeSelected(true);
           setVisible(false);
-          navigation.replace('PremiumOnbording');
+          navigation.replace('Home');
         }}
         currentTheme={null}
         onThemeChange={onThemeChange}

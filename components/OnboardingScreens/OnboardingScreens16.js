@@ -106,7 +106,7 @@ export default function AchievementGoalsScreen({ route }) {
   const handleContinue = () => {
     // Only proceed if at least one goal is selected
     if (selectedGoals.length > 0) {
-      navigation.navigate('PremiumOnbording', {
+      navigation.navigate('OnboardingThemeSelection', {
         selectedMood,
         selectedFactors,
         selectedAreas,

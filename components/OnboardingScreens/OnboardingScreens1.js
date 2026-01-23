@@ -122,7 +122,7 @@ export default function App({ navigation }) {
                   if (!themeSelected) {
                     navigation.replace('OnboardingThemeSelection');
                   } else {
-                    navigation.replace('PremiumOnbording');
+                    navigation.replace('Home');
                   }
                 }
               }, 1500);
@@ -179,7 +179,7 @@ export default function App({ navigation }) {
       if (!themeSelected) {
         navigation.replace('OnboardingThemeSelection');
       } else {
-        navigation.replace('PremiumOnbording');
+        navigation.replace('Home');
       }
     } catch (error) {
       console.error('Continue error:', error);
@@ -188,7 +188,7 @@ export default function App({ navigation }) {
       if (!themeSelected) {
         navigation.replace('OnboardingThemeSelection');
       } else {
-        navigation.replace('PremiumOnbording');
+        navigation.replace('Home');
       }
     }
   };

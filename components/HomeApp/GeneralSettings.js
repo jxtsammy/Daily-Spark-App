@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import {
   ArrowRight,
-  Crown,
   BookOpen,
   User,
   UserCircle,
@@ -77,28 +76,8 @@ export default function App({ navigation }) {
           </View>
 
           <ScrollView style={styles.content}>
-            {/* Premium Section */}
-            <Text style={styles.sectionTitle}>PREMIUM</Text>
-
-
-            {
-              loggedIn ? (
-                renderSettingItem(
-                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
-                  "Manage subscription",
-                  "ManageSubscription"
-                )
-              ) : (
-                renderSettingItem(
-                  <Crown stroke="#fff" width={24} height={24} style={styles.icon} />,
-                  "Sign In to Manage subscription",
-                  "SignIn"
-                )
-              )
-            }
-
             {/* Make It Yours Section */}
-            <Text style={[styles.sectionTitle, styles.sectionTitleSpacing]}>MAKE IT YOURS</Text>
+            <Text style={styles.sectionTitle}>MAKE IT YOURS</Text>
             {renderSettingItem(
               <BookOpen stroke="#fff" width={24} height={24} style={styles.icon} />,
               "Content preferences",

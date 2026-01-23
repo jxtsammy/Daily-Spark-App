@@ -14,13 +14,12 @@ import {
   ScrollView,
   Image
 } from "react-native";
-// Removed MediaLibrary and view-shot imports that were causing errors
 import * as FileSystem from 'expo-file-system';
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { Crown } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import PremiumModal from "./PremiumModal";
-import SettingsModal from "./SettingScreen";
+
 import { getShareImageFromTheme } from "./Themes";
 import ThemesModal from "./Themes";
 import Color from "color";
@@ -33,13 +32,17 @@ import AdManager from "../../services/AdManager";
 
 const { width, height } = Dimensions.get("window");
 
-const defaultTheme = {
-  id: "color-1",
-  name: "Light Cream",
-  type: "color",
-  value: "#F5F5F0",
-  isPremium: false,
-  isGradient: false,
+// Random gradient themes for variety
+const gradientThemes = [
+  { id: 'gradient-1', name: 'Sunset', type: 'gradient', value: ['#FF512F', '#F09819'], isPremium: false, isGradient: true },
+  { id: 'gradient-2', name: 'Ocean Blue', type: 'gradient', value: ['#2E3192', '#1BFFFF'], isPremium: false, isGradient: true },
+  { id: 'gradient-3', name: 'Purple Haze', type: 'gradient', value: ['#8E2DE2', '#4A00E0'], isPremium: false, isGradient: true },
+  { id: 'gradient-4', name: 'Emerald', type: 'gradient', value: ['#43C6AC', '#191654'], isPremium: false, isGradient: true },
+  { id: 'gradient-5', name: 'Peach', type: 'gradient', value: ['#FFB88C', '#DE6262'], isPremium: false, isGradient: true },
+];
+
+const getRandomGradientTheme = () => {
+  return gradientThemes[Math.floor(Math.random() * gradientThemes.length)];
 };
 
 const isDarkColor = (colorValue) => {
@@ -67,12 +70,17 @@ export default function QuotesScreen({ navigation }) {
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [likedQuotes, setLikedQuotes] = useState([]);
   const [premiumModalVisible, setPremiumModalVisible] = useState(false);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+
   const [themesModalVisible, setThemesModalVisible] = useState(false);
   // Read theme from persisted store so it's global across the app
   const storedTheme = useStore((s) => s.currentTheme);
   const setStoredTheme = useStore((s) => s.setCurrentTheme);
-  const currentTheme = storedTheme || defaultTheme;
+  
+  // Memoize the default theme so it stays constant during session but random per app launch
+  const [sessionDefaultTheme] = useState(getRandomGradientTheme());
+  
+  // Use stored theme if available, otherwise use random session default
+  const currentTheme = storedTheme || sessionDefaultTheme;
   const [isLoading, setIsLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [isPremiumUser, setIsPremiumUser] = useState(false);
@@ -142,13 +150,13 @@ export default function QuotesScreen({ navigation }) {
   const checkUserAndInitialize = useCallback(async () => {
     const { userId } = useStore.getState();
     if (!userId) {
-      navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       return false;
     }
     
     const hasActiveTrial = await CheckHasFreeTrial();
     if (!hasActiveTrial) {
-      navigation.reset({ index: 0, routes: [{ name: 'PremiumOnbording' }] });
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
       return false;
     }
     
@@ -330,23 +338,50 @@ const handleLike = async () => {
       if (currentTheme && currentTheme.type === 'image') {
         try {
           const imageAsset = getShareImageFromTheme(currentTheme);
+          let fileUri = null;
           
-          // If we have a valid image, attempt to share it with the text
-          if (imageAsset && (imageAsset.uri || typeof imageAsset === 'number')) {
-            // For iOS, we can share the URL directly
-            if (Platform.OS === 'ios' && imageAsset.uri) {
-              await Share.share({
-                message: shareMessage,
-                url: imageAsset.uri,
-                title: "Daily Inspiration",
-              });
-              setIsLoading(false);
-              return;
+          if (imageAsset) {
+            // If it's a remote URL, download it first
+            if (imageAsset.uri) {
+              const fileName = imageAsset.uri.split('/').pop().split('?')[0] + '.jpg';
+              const fileDest = `${FileSystem.cacheDirectory}${fileName}`;
+              
+              // Simple check if file likely exists or just download it
+              // We blindly download to avoid the deprecated getInfoAsync check for now, 
+              // or we could wrapping it in a try/catch if we really wanted to check existence.
+              // For sharing, fresh download is safer to ensure it works.
+              try {
+                const { uri } = await FileSystem.downloadAsync(
+                  imageAsset.uri,
+                  fileDest
+                );
+                fileUri = uri;
+              } catch (dlError) {
+                console.log('Download failed, using remote URI fallback', dlError);
+                fileUri = imageAsset.uri;
+              }
+            } else if (typeof imageAsset === 'number') {
+              // Local asset - difficult to share directly via Share.share url on some platforms 
+              // without resolveAssetSource, but often treated as resource.
+              // For React Native 'Share', local assets usually need to be regular files.
+              // We'll skip complex local asset conversion for now as most are remote.
+              // If you have local assets, you might need Image.resolveAssetSource(imageAsset).uri 
+              // but it's a 'asset://' or 'http://localhost' scheme in Expo Go.
             }
+          }
+          
+          if (fileUri) {
+            // For iOS, we can share the local file URI directly
+            await Share.share({
+              message: shareMessage,
+              url: fileUri, 
+              title: "Daily Inspiration",
+            });
+            setIsLoading(false);
+            return;
           }
         } catch (imageError) {
           console.log('Error preparing image for sharing:', imageError);
-          // Fall back to text-only sharing
         }
       }
 
@@ -409,7 +444,6 @@ const handleLike = async () => {
   }, [quotes.length]);
 
   const togglePremiumModal = () => setPremiumModalVisible(!premiumModalVisible);
-  const toggleSettingsModal = () => setSettingsModalVisible(!settingsModalVisible);
   const toggleThemesModal = () => setThemesModalVisible(!themesModalVisible);
   const handleThemeChange = (theme) => {
     // persist globally
@@ -422,8 +456,13 @@ const handleLike = async () => {
     } else if (currentTheme.type === "gradient") {
       return <LinearGradient colors={currentTheme.value} style={styles.backgroundContainer} />;
     } else if (currentTheme.type === "image") {
+      // Handle both local (require) and remote (URL) images
+      const imageSource = currentTheme.isLocal 
+        ? currentTheme.value  // Local require() returns a number
+        : { uri: currentTheme.value }; // Remote URL needs {uri: ...}
+      
       return (
-        <ImageBackground source={{ uri: currentTheme.value }} style={styles.backgroundContainer} resizeMode="cover">
+        <ImageBackground source={imageSource} style={styles.backgroundContainer} resizeMode="cover">
           <View style={styles.imageOverlay} />
         </ImageBackground>
       );
@@ -531,15 +570,6 @@ const handleLike = async () => {
             </View>
           </View>
         )}
-
-        {!isPremiumUser && (
-          <TouchableOpacity
-            style={[styles.crownButton, { backgroundColor: elementBgColor }]}
-            onPress={togglePremiumModal}
-          >
-            <Crown size={24} color={textColor} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Quotes ScrollView */}
@@ -592,7 +622,7 @@ const handleLike = async () => {
 
         <TouchableOpacity
           style={[styles.navButton, { backgroundColor: elementBgColor }]}
-          onPress={toggleSettingsModal}
+          onPress={() => navigation.navigate('GeneralSettings')}
         >
           <Ionicons name="person" size={24} color={textColor} />
         </TouchableOpacity>
@@ -600,7 +630,6 @@ const handleLike = async () => {
 
       {/* Modals */}
       <PremiumModal visible={premiumModalVisible} onClose={togglePremiumModal} />
-      <SettingsModal visible={settingsModalVisible} onClose={setSettingsModalVisible} />
       <ThemesModal
         visible={themesModalVisible}
         onClose={toggleThemesModal}

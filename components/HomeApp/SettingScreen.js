@@ -42,11 +42,9 @@ const getDays = () => {
 };
 
 export default function SettingsModal({ visible, onClose }) {
-  const slideAnim = useRef(new Animated.Value(height)).current;
   const [days] = useState(getDays());
   const [streak, setStreak] = useState(1);
   const [dots, setDots] = useState([]);
-  const [isClosing, setIsClosing] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -69,222 +67,135 @@ export default function SettingsModal({ visible, onClose }) {
     createDots();
   }, []);
 
-  useEffect(() => {
-    if (visible && !isClosing) {
-      setIsClosing(false);
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }).start();
-    } else if (!visible || isClosing) {
-      Animated.timing(slideAnim, {
-        toValue: height * 0.9,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        if (isClosing) {
-          onClose();
-          setIsClosing(false);
-        }
-      });
-    }
-  }, [visible, isClosing]);
-
-  const handleClose = () => {
-    setIsClosing(true);
-  };
-
-  if (!visible && !isClosing) return null;
+  if (!visible) return null;
 
   return (
-    <View style={styles.overlay}>
-      <Animated.View
-        style={[
-          styles.modalContainer,
-          { transform: [{ translateY: slideAnim }] },
-        ]}
-      >
-        {dots.map((dot, index) => (
-          <View
-            key={index}
-            style={[
-              styles.floatingDot,
-              {
-                left: dot.posX,
-                top: dot.posY,
-                width: dot.size,
-                height: dot.size,
-                opacity: dot.opacity,
-              },
-            ]}
-          />
-        ))}
+    <View style={styles.container}>
+      {dots.map((dot, index) => (
+        <View
+          key={index}
+          style={[
+            styles.floatingDot,
+            {
+              left: dot.posX,
+              top: dot.posY,
+              width: dot.size,
+              height: dot.size,
+              opacity: dot.opacity,
+            },
+          ]}
+        />
+      ))}
 
-        <View style={styles.modalContent}>
-          <StatusBar
-            barStyle="light-content"
-            backgroundColor="transparent"
-            translucent
-          />
+      <View style={styles.content}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
 
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <X size={24} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.title}>Settings</Text>
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.title}>Settings</Text>
+        </View>
 
-          {/* Premium Card */}
-          <TouchableOpacity style={styles.premiumCardContainer}>
-            <View
-              style={styles.premiumCardBackground}
-    >
+
+        {/* Firestreak */}
+        {/* <View style={styles.firestreakContainer}>
+          <View style={styles.firestreakContent}>
+            <View style={styles.fireIcon}>
               <LinearGradient
-                colors={['rgba(0, 0, 0, 0.85)', 'rgba(0, 0, 0, 0.2)']}
+                colors={['#A78BFA', '#EC4899']}
+                style={styles.fireGradient}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.premiumCardOverlay}>
-                <View style={styles.premiumCardContent}>
-                  <View>
-                    <Text style={styles.premiumCardTitle}>
-                      Try Motivation Premium
-                    </Text>
-                    <Text style={styles.premiumCardDescription}>
-                      Access all categories, quotes, themes, and remove ads!
-                    </Text>
-                  </View>
-                  <View style={styles.phoneIconContainer}>
-                    <Smartphone size={40} color="white" />
-                  </View>
-                </View>
+                end={{ x: 1, y: 1 }}>
+                <Flame size={34} color="white" />
               </LinearGradient>
             </View>
-          </TouchableOpacity>
 
-          {/* Firestreak */}
-          {/* <View style={styles.firestreakContainer}>
-            <View style={styles.firestreakContent}>
-              <View style={styles.fireIcon}>
-                <LinearGradient
-                  colors={['#A78BFA', '#EC4899']}
-                  style={styles.fireGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}>
-                  <Flame size={34} color="white" />
-                </LinearGradient>
-              </View>
-
-              <View style={styles.daysContainer}>
-                {days.map((day, index) => (
-                  <View key={index} style={styles.dayColumn}>
-                    <Text style={styles.dayText}>{day}</Text>
-                    <View
-                      style={[
-                        styles.dayCircle,
-                        index === 0 && styles.activeDayCircle,
-                      ]}>
-                      {index === 0 && <Check size={16} color="white" />}
-                    </View>
+            <View style={styles.daysContainer}>
+              {days.map((day, index) => (
+                <View key={index} style={styles.dayColumn}>
+                  <Text style={styles.dayText}>{day}</Text>
+                  <View
+                    style={[
+                      styles.dayCircle,
+                      index === 0 && styles.activeDayCircle,
+                    ]}>
+                    {index === 0 && <Check size={16} color="white" />}
                   </View>
-                ))}
-              </View>
+                </View>
+              ))}
             </View>
-          </View> */}
-
-          {/* Settings */}
-          {/* <Text style={styles.sectionTitle}>SETTINGS</Text> */}
-          <View style={styles.settingsContainer}>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => navigation.navigate('GeneralSettings')}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIconContainer}>
-                  <Settings size={20} color="white" />
-                </View>
-                <Text style={styles.settingText}>General</Text>
-              </View>
-              <ChevronRight size={20} color="#A0AEC0" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => navigation.navigate('Topics')}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIconContainer}>
-                  <CheckCircle size={20} color="white" />
-                </View>
-                <Text style={styles.settingText}>Topics you follow</Text>
-              </View>
-              <ChevronRight size={20} color="#A0AEC0" />
-            </TouchableOpacity>
-{/*
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => navigation.navigate('Reminders')}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIconContainer}>
-                  <Bell size={20} color="white" />
-                </View>
-                <Text style={styles.settingText}>Reminders</Text>
-              </View>
-              <ChevronRight size={20} color="#A0AEC0" />
-            </TouchableOpacity> */}
-
-            {/* <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => navigation.navigate('Widgets')}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIconContainer}>
-                  <LayoutGrid size={20} color="white" />
-                </View>
-                <Text style={styles.settingText}>Widgets</Text>
-              </View>
-              <ChevronRight size={20} color="#A0AEC0" />
-            </TouchableOpacity> */}
           </View>
+        </View> */}
+
+        {/* Settings */}
+        {/* <Text style={styles.sectionTitle}>SETTINGS</Text> */}
+        <View style={styles.settingsContainer}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('GeneralSettings')}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIconContainer}>
+                <Settings size={20} color="white" />
+              </View>
+              <Text style={styles.settingText}>General</Text>
+            </View>
+            <ChevronRight size={20} color="#A0AEC0" />
+          </TouchableOpacity>
+{/*
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('Reminders')}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIconContainer}>
+                <Bell size={20} color="white" />
+              </View>
+              <Text style={styles.settingText}>Reminders</Text>
+            </View>
+            <ChevronRight size={20} color="#A0AEC0" />
+          </TouchableOpacity> */}
+
+          {/* <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('Widgets')}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIconContainer}>
+                <LayoutGrid size={20} color="white" />
+              </View>
+              <Text style={styles.settingText}>Widgets</Text>
+            </View>
+            <ChevronRight size={20} color="#A0AEC0" />
+          </TouchableOpacity> */}
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-  },
-  modalContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: height * 0.9,
+  container: {
+    flex: 1,
     backgroundColor: '#000',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
   },
-  modalContent: {
+  content: {
     flex: 1,
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 70 : 20,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
   },
   closeButton: {
     padding: 5,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
     marginLeft: 15,

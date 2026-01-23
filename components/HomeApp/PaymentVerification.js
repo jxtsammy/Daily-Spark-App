@@ -54,9 +54,9 @@ export default function PaymentVerification() {
                 if (res?.status === 'success') {
                     setStatus('success');
                     Toast.success('Payment verified successfully');
-                    // Optionally navigate to ManageSubscriptions or Home after a short delay
+                    // Navigate to Home after successful payment
                     setTimeout(() => {
-                        navigation.replace('ManageSubscription');
+                        navigation.replace('Home');
                     }, 1500);
                     return true;
                 }
@@ -137,9 +137,9 @@ export default function PaymentVerification() {
                 {status === 'failed' && (
                     <>
                         <Text style={styles.failed}>Verification failed</Text>
-                        <Text style={styles.message}>You can try opening the payment page or check Manage Subscriptions later.</Text>
-                        <TouchableOpacity style={styles.button} onPress={() => navigation.replace('ManageSubscription')}>
-                            <Text style={styles.buttonText}>Go to Manage Subscriptions</Text>
+                        <Text style={styles.message}>You can try opening the payment page or check back later.</Text>
+                        <TouchableOpacity style={styles.button} onPress={() => navigation.replace('Home')}>
+                            <Text style={styles.buttonText}>Go to Home</Text>
                         </TouchableOpacity>
                     </>
                 )}

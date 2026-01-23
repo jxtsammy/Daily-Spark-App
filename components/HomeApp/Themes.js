@@ -17,80 +17,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import PremiumModal from './PremiumModal';
 import { CheckActivePaidSubscriptionsBoolean } from '../../functions/check-active-paid-subscription';
-import * as FileSystem from 'expo-file-system';
+
 
 const { width, height } = Dimensions.get('window');
 const ITEM_WIDTH = (width - 60) / 3;
 const ITEM_HEIGHT = ITEM_WIDTH * 1.6;
-
-// Enhanced image caching function with better error handling and quality control
-const cacheImages = async (images) => {
-  const cachePromises = images.map(async (imageUrl, index) => {
-    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) return null;
-    
-    // Add quality parameters to URLs that support them
-    let optimizedUrl = imageUrl;
-    if (imageUrl.includes('pexels.com')) {
-      // Pexels images - ensure we get high quality but reasonable file size
-      optimizedUrl = imageUrl.includes('?') 
-        ? `${imageUrl}&auto=compress&cs=tinysrgb&w=800&dpr=2` 
-        : `${imageUrl}?auto=compress&cs=tinysrgb&w=800&dpr=2`;
-    }
-    
-    const fileName = `theme_image_${index}_${imageUrl.split('/').pop().split('?')[0]}`;
-    const filePath = `${FileSystem.cacheDirectory}${fileName}`;
-    
-    try {
-      const info = await FileSystem.getInfoAsync(filePath);
-      if (info.exists) {
-        return { uri: filePath };
-      }
-      
-      // Download the image with timeout and error handling
-      const downloadPromise = new Promise(async (resolve, reject) => {
-        // Set a 10 second timeout
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Image download timeout'));
-        }, 10000);
-        
-        try {
-          const downloadResumable = FileSystem.createDownloadResumable(
-            optimizedUrl,
-            filePath,
-            {},
-            (downloadProgress) => {
-              const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-              // Could use this progress for a UI progress indicator
-            }
-          );
-          
-          const { uri } = await downloadResumable.downloadAsync();
-          clearTimeout(timeoutId);
-          resolve({ uri });
-        } catch (e) {
-          clearTimeout(timeoutId);
-          reject(e);
-        }
-      });
-      
-      return await downloadPromise;
-    } catch (e) {
-      console.warn(`Error caching image ${imageUrl}:`, e);
-      // Return the original URL as fallback
-      return { uri: optimizedUrl };
-    }
-  });
-  
-  return Promise.all(cachePromises);
-};
-
-// Function to validate image URLs
-const isValidImageUrl = (url) => {
-  if (!url || typeof url !== 'string') return false;
-  return url.match(/\.(jpeg|jpg|gif|png)($|\?)/i) !== null || 
-         url.includes('unsplash.com') || 
-         url.includes('images.pexels.com');
-};
 
 // Generate color themes with transparency options
 const generateColorThemes = () => {
@@ -314,7 +245,7 @@ const generateColorThemes = () => {
       name: 'Sunset',
       type: 'gradient',
       value: ['#FF512F', '#F09819'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -322,7 +253,7 @@ const generateColorThemes = () => {
       name: 'Ocean Blue',
       type: 'gradient',
       value: ['#2E3192', '#1BFFFF'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -330,7 +261,7 @@ const generateColorThemes = () => {
       name: 'Purple Haze',
       type: 'gradient',
       value: ['#8E2DE2', '#4A00E0'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -338,7 +269,7 @@ const generateColorThemes = () => {
       name: 'Emerald',
       type: 'gradient',
       value: ['#43C6AC', '#191654'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -346,7 +277,7 @@ const generateColorThemes = () => {
       name: 'Peach',
       type: 'gradient',
       value: ['#FFB88C', '#DE6262'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -354,7 +285,7 @@ const generateColorThemes = () => {
       name: 'Moonlight',
       type: 'gradient',
       value: ['#0F2027', '#203A43', '#2C5364'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -362,7 +293,7 @@ const generateColorThemes = () => {
       name: 'Calm Dawn',
       type: 'gradient',
       value: ['#F3F9A7', '#CAC531'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -370,7 +301,7 @@ const generateColorThemes = () => {
       name: 'Royal Purple',
       type: 'gradient',
       value: ['#834D9B', '#D04ED6'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -378,7 +309,7 @@ const generateColorThemes = () => {
       name: 'Soft Peach',
       type: 'gradient',
       value: ['#FFC3A0', '#FFAFBD'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
     {
@@ -386,7 +317,7 @@ const generateColorThemes = () => {
       name: 'Deep Ocean',
       type: 'gradient',
       value: ['#4B79A1', '#283E51'],
-      isPremium: true,
+      isPremium: false,
       isGradient: true,
     },
   ];
@@ -559,7 +490,7 @@ const generateImageThemes = () => {
       name: 'Starry Night',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -567,7 +498,7 @@ const generateImageThemes = () => {
       name: 'Desert Dunes',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -575,7 +506,7 @@ const generateImageThemes = () => {
       name: 'Autumn Path',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -583,7 +514,7 @@ const generateImageThemes = () => {
       name: 'Ocean Waves',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -591,7 +522,7 @@ const generateImageThemes = () => {
       name: 'Lavender Field',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1499002238440-d264edd596ec?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -599,7 +530,7 @@ const generateImageThemes = () => {
       name: 'Misty Forest',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -607,7 +538,7 @@ const generateImageThemes = () => {
       name: 'Cherry Blossoms',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -615,7 +546,7 @@ const generateImageThemes = () => {
       name: 'Snowy Mountains',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -623,7 +554,7 @@ const generateImageThemes = () => {
       name: 'Tropical Beach',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1506953823976-52e1fdc0149a?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -631,7 +562,7 @@ const generateImageThemes = () => {
       name: 'Waterfall',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1467890947394-8171244e5410?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -639,7 +570,7 @@ const generateImageThemes = () => {
       name: 'Northern Lights',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     // Additional premium nature themes
@@ -648,7 +579,7 @@ const generateImageThemes = () => {
       name: 'Golden Sunset',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -656,7 +587,7 @@ const generateImageThemes = () => {
       name: 'Misty Mountains',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -664,7 +595,7 @@ const generateImageThemes = () => {
       name: 'Tropical Paradise',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1520690214124-2405c5217036?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -672,7 +603,7 @@ const generateImageThemes = () => {
       name: 'Desert Night',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1576502200916-3808e07386a5?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -680,7 +611,7 @@ const generateImageThemes = () => {
       name: 'Wheat Field',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -688,7 +619,7 @@ const generateImageThemes = () => {
       name: 'Coastal Cliffs',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -696,7 +627,7 @@ const generateImageThemes = () => {
       name: 'Cityscape',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -704,7 +635,7 @@ const generateImageThemes = () => {
       name: 'Calm Waters',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -712,7 +643,7 @@ const generateImageThemes = () => {
       name: 'Rainy Street',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1501180895265-c59bf9611e4d?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
     {
@@ -720,7 +651,7 @@ const generateImageThemes = () => {
       name: 'Palm Beach',
       type: 'image',
       value: 'https://images.unsplash.com/photo-1544644181-1484b3fdfc32?w=600&auto=format&q=80',
-      isPremium: true,
+      isPremium: false,
       isLocal: false
     },
   ];
@@ -895,35 +826,13 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [focusedFeature, setFocusedFeature] = useState('');
   const [loadingImages, setLoadingImages] = useState(true);
-  const [cachedImages, setCachedImages] = useState({});
 
-  // Initialize themes with image caching
+  // Initialize themes
   useEffect(() => {
     const initializeThemes = async () => {
       setLoadingImages(true);
       const colorThemes = generateColorThemes();
       const imageThemes = generateImageThemes();
-      
-      // Cache remote image URLs
-      const remoteThemes = imageThemes.filter(theme => !theme.isLocal);
-      const imageUrls = remoteThemes.map(theme => theme.value);
-      
-      try {
-        // Cache images for faster loading on subsequent renders
-        const cachedImageResults = await cacheImages(imageUrls);
-        
-        // Create a mapping of original URL to cached URL
-        const cacheMap = {};
-        imageUrls.forEach((url, index) => {
-          if (cachedImageResults[index]) {
-            cacheMap[url] = cachedImageResults[index];
-          }
-        });
-        
-        setCachedImages(cacheMap);
-      } catch (error) {
-        console.warn('Error caching images', error);
-      }
       
       setThemes([...colorThemes, ...imageThemes]);
       setLoadingImages(false);
@@ -1218,16 +1127,6 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Themes</Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.unlockButton}
-            onPress={() => {
-              setFocusedFeature('All Themes');
-              setShowPremiumModal(true);
-            }}
-          >
-            <Text style={styles.unlockButtonText}>Unlock all</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Loading indicator */}

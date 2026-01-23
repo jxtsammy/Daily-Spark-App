@@ -17,8 +17,6 @@ import Onboarding13 from './components/OnboardingScreens/OnboardingScreens13'
 import Onboarding14 from './components/OnboardingScreens/OnboardingScreens14'
 import Onboarding15 from './components/OnboardingScreens/OnboardingScreens15'
 import Onboarding16 from './components/OnboardingScreens/OnboardingScreens16'
-import PremiumOnbording from './components/OnboardingScreens/PremiumOnbording'
-import WidgetOnboarding from './components/OnboardingScreens/WidgetOnboarding'
 import OnboardingThemeSelection from './components/OnboardingScreens/OnboardingThemeSelection'
 import Home from './components/HomeApp/Home'
 import Settings from './components/HomeApp/SettingScreen'
@@ -32,7 +30,6 @@ import EditName from './components/HomeApp/GeneralSettingsOptions/EditName'
 import LanguageSettings from './components/HomeApp/GeneralSettingsOptions/Language'
 import StreakSettings from './components/HomeApp/GeneralSettingsOptions/StreakSettings'
 import SignIn from './components/HomeApp/GeneralSettingsOptions/SignIn'
-import ManageSubscription from './components/HomeApp/GeneralSettingsOptions/ManageSubscription'
 import Themes from './components/HomeApp/Themes'
 import About from './components/HomeApp/GeneralSettingsOptions/About'
 import DeleteAccount from './components/HomeApp/GeneralSettingsOptions/DeleteAccount'
@@ -240,18 +237,8 @@ export default function App() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="PremiumOnbording"
-          component={PremiumOnbording}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
           name="OnboardingThemeSelection"
           component={OnboardingThemeSelection}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="WidgetOnboarding"
-          component={WidgetOnboarding}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -312,11 +299,6 @@ export default function App() {
         <Stack.Screen
           name="SignIn"
           component={SignIn}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ManageSubscription"
-          component={ManageSubscription}
           options={{ headerShown: false }}
         />
         <Stack.Screen
