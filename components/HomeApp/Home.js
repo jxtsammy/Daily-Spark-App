@@ -366,6 +366,7 @@ const handleLike = async () => {
                   // In prod, they might be file:// or asset://
                   // downloadAsync handles http well. copyAsync handles file:// better.
                   // We'll try download first as it covers the most common cases including dev.
+                  try {
                     const { uri } = await FileSystem.downloadAsync(
                       resolved.uri,
                       fileDest
