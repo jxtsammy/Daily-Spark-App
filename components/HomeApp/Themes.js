@@ -826,6 +826,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [focusedFeature, setFocusedFeature] = useState('');
   const [loadingImages, setLoadingImages] = useState(true);
+  const [failedImages, setFailedImages] = useState({});
 
   // Initialize themes
   useEffect(() => {
@@ -1042,7 +1043,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
         )}
       </TouchableOpacity>
     );
-  }, [selectedTheme, handleThemeSelect, loadingImages, cachedImages, isPremiumUser]);
+  }, [selectedTheme, handleThemeSelect, loadingImages, failedImages, isPremiumUser]);
 
   // Memoize the theme mix item rendering
   const renderThemeMixItem = useCallback(({ item }) => (
