@@ -366,15 +366,18 @@ const handleLike = async () => {
                   // In prod, they might be file:// or asset://
                   // downloadAsync handles http well. copyAsync handles file:// better.
                   // We'll try download first as it covers the most common cases including dev.
-                  try {
                     const { uri } = await FileSystem.downloadAsync(
                       resolved.uri,
                       fileDest
                     );
                     fileUri = uri;
                   } catch (e) {
-                    console.log('Local asset download failed, falling back to original URI', e);
-                    fileUri = resolved.uri;
+                    console.log('Local asset download failed:', e);
+                    // Do NOT fall back to resolved.uri if it's http (link sharing)
+                    // Only use it if it's already a file path
+                    if (resolved.uri.startsWith('file://')) {
+                      fileUri = resolved.uri;
+                    }
                   }
                 }
               } catch (resolveError) {
@@ -383,7 +386,7 @@ const handleLike = async () => {
             }
           }
           
-          if (fileUri) {
+          if (fileUri && fileUri.startsWith('file://')) {
             // For iOS, we can share the local file URI directly
             await Share.share({
               message: shareMessage,
