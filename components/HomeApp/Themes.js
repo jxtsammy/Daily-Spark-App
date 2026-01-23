@@ -977,9 +977,7 @@ export default function ThemesModal({ visible, onClose, currentTheme, onThemeCha
                     onError={(e) => {
                       console.warn(`Error loading image ${item.id}:`, e.nativeEvent.error);
                       // Trigger fallback for this specific image
-                        updatedCache[item.value] = { uri: fallbackUrl };
-                        setCachedImages(updatedCache);
-                      }
+                      setFailedImages(prev => ({ ...prev, [item.id]: true }));
                     }}
                   />
                   
