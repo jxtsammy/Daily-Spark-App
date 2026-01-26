@@ -148,20 +148,10 @@ export default function QuotesScreen({ navigation }) {
   }, []);
 
   const checkUserAndInitialize = useCallback(async () => {
-    const { userId } = useStore.getState();
-    if (!userId) {
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-      return false;
-    }
-    
-    const hasActiveTrial = await CheckHasFreeTrial();
-    if (!hasActiveTrial) {
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-      return false;
-    }
-    
+    // Allow anonymous users to access the home screen and view quotes
+    // No blocking checks - proceed with fetching quotes
     return true;
-  }, [navigation]);
+  }, []);
 
   // Handle ad display logic
   const handleAdDisplay = useCallback(async (direction) => {
